@@ -191,7 +191,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-          workspaces: src-tauri -> ../desktop-build/desktop
+          workspaces: src-tauri -> ../desktop-build-macos/desktop
           shared-key: desktop-rust-1.97-${{ hashFiles('src-tauri/Cargo.lock', 'build-dependencies.json') }}
 
       - uses: actions/cache@v4
