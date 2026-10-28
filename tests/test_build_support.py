@@ -4,7 +4,10 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -62,6 +65,56 @@ class SourceTests(unittest.TestCase):
         (self.repo / 'extra').write_text('untracked')
         with self.assertRaisesRegex(ValueError, 'dirty'):
             support.identity(self.repo)
+
+    def install_replacement(self, kind):
+        original = subprocess.check_output(['git', '--no-replace-objects', '-C', str(self.repo), 'show', self.commit + ':Cargo.lock'])
+        blob = self.git('rev-parse', self.commit + ':Cargo.lock')
+        (self.repo / 'Cargo.lock').write_bytes(b'version = 3\n')
+        self.git('add', 'Cargo.lock')
+        if kind == 'commit':
+            self.git('commit', '-m', 'Example alternate source')
+            replacement = self.git('rev-parse', 'HEAD')
+            self.git('replace', self.commit, replacement)
+            self.git('update-ref', 'refs/heads/main', self.commit)
+        else:
+            replacement = self.git('rev-parse', ':Cargo.lock')
+            self.git('replace', blob, replacement)
+        if kind == 'commit':
+            self.assertEqual(self.git('status', '--porcelain', '--untracked-files=all'), '')
+        self.assertNotEqual(subprocess.check_output(['git', '--no-replace-objects', '-C', str(self.repo), 'status', '--porcelain']), b'')
+        return original
+
+    def test_python_identity_and_archive_use_original_commit_and_blob_objects(self):
+        for kind in ('commit', 'blob'):
+            with self.subTest(kind=kind):
+                original = self.install_replacement(kind)
+                with self.assertRaisesRegex(ValueError, 'dirty'):
+                    support.identity(self.repo, support.REPOSITORIES['ghost'], self.commit)
+                snapshot = self.root / ('python-' + kind)
+                snapshot.mkdir()
+                support.extract(support.archive(self.repo, self.commit), snapshot)
+                self.assertEqual((snapshot / 'Cargo.lock').read_bytes(), original)
+                subprocess.run(['git', '--no-replace-objects', '-C', str(self.repo), 'reset', '--hard', self.commit], check=True, stdout=subprocess.DEVNULL)
+                self.assertEqual(support.identity(self.repo)['commit'], self.commit)
+                self.git('replace', '-d', self.git('replace', '-l'))
+
+    @unittest.skipIf(os.name == 'nt', 'Linux wrapper uses Bash')
+    def test_shell_exporter_uses_original_commit_and_blob_objects(self):
+        for kind in ('commit', 'blob'):
+            with self.subTest(kind=kind):
+                original = self.install_replacement(kind)
+                output = self.root / (kind + '.tar')
+                command = ['bash', '-c', 'set -euo pipefail; source "$1"; source_archive "$2" "$3" "$4" "$5"', '--', str(support.ROOT / 'scripts/source-archive.sh'), str(self.repo), support.REPOSITORIES['ghost'], self.commit, str(output)]
+                rejected = subprocess.run(command, capture_output=True, text=True)
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertIn('Source is dirty', rejected.stderr)
+                subprocess.run(['git', '--no-replace-objects', '-C', str(self.repo), 'reset', '--hard', self.commit], check=True, stdout=subprocess.DEVNULL)
+                self.assertEqual(subprocess.check_output(command, text=True), self.commit)
+                snapshot = self.root / ('shell-' + kind)
+                snapshot.mkdir()
+                support.extract(output.read_bytes(), snapshot)
+                self.assertEqual((snapshot / 'Cargo.lock').read_bytes(), original)
+                self.git('replace', '-d', self.git('replace', '-l'))
 
     @unittest.skipIf(os.name == 'nt', 'Requires symbolic link privileges')
     def test_symlink_and_unowned_gitfile_are_refused(self):
@@ -203,6 +256,79 @@ root=pathlib.Path(args[args.index('--root')+1]); (root/'bin').mkdir(parents=True
             metadata['desktop']['sha256'] = hashlib.sha256(data).hexdigest()
             (bundle / 'identity.json').write_text(json.dumps(metadata))
             self.assertEqual(support.desktop_identity(), {'commit': self.commit, 'dirty': False})
+
+
+@unittest.skipIf(os.name == 'nt', 'Uses a POSIX executable fixture')
+class WorkflowSourceTests(unittest.TestCase):
+    def test_workflow_generated_and_restored_caches_keep_source_clean(self):
+        workflow = (support.ROOT / '.github/workflows/packages.yml').read_text()
+        for job, targets in (('build', ('x86_64-pc-windows-msvc',)),
+                             ('macos', ('aarch64-apple-darwin', 'x86_64-apple-darwin'))):
+            with self.subTest(job=job), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / 'source'
+                root.mkdir()
+                block = re.search(r'^  ' + job + r':\n(.*?)(?=^  [a-zA-Z_-]+:|\Z)', workflow, re.M | re.S)[1]
+                selected = dict(re.findall(r'^      (DESKTOP_BUILD_DIR|CARGO_TARGET_DIR): (.+)$', block, re.M))
+                selected = {key: value.replace('${{ github.workspace }}', str(root)) for key, value in selected.items()}
+                self.assertEqual(set(selected), {'DESKTOP_BUILD_DIR', 'CARGO_TARGET_DIR'})
+                build_root = Path(selected['DESKTOP_BUILD_DIR'])
+                workspace, cache_target = re.search(r'^          workspaces: (\S+) -> (\S+)$', block, re.M).groups()
+                native_target = (root / workspace / cache_target).resolve()
+                self.assertEqual(native_target, Path(selected['CARGO_TARGET_DIR']).resolve())
+                cache_block = re.search(r'uses: actions/cache@v4\n        with:\n          path: \|\n(.*?)(?=^          key:)', block, re.M | re.S)[1]
+                cache_paths = [Path(value.strip().replace('${{ env.DESKTOP_BUILD_DIR }}', str(build_root))) for value in cache_block.splitlines() if value.strip()]
+                self.assertEqual(len(cache_paths), 2)
+                for name in ('.gitignore', 'build-dependencies.json', 'package.json', 'package-lock.json',
+                             'src-tauri/tauri.conf.json', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock',
+                             'scripts/build-support.py'):
+                    destination = root / name
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(support.ROOT / name, destination)
+                def git(*args):
+                    return subprocess.check_output(['git', '-C', str(root), *args], text=True, stderr=subprocess.DEVNULL).strip()
+                git('init', '-b', 'main')
+                git('config', 'user.name', 'Example')
+                git('config', 'user.email', 'example@example.com')
+                git('remote', 'add', 'origin', 'https://github.com/GhostRack-io/desktop-app.git')
+                git('add', '.')
+                git('commit', '-m', 'Example desktop source')
+                commit = git('rev-parse', 'HEAD')
+                tools = Path(temporary) / 'tools'
+                tools.mkdir()
+                cargo = tools / 'cargo'
+                cargo.write_text('''#!/usr/bin/env python3
+import pathlib,sys
+args=sys.argv[1:]
+prefix=pathlib.Path(args[args.index('--root')+1])/'bin'
+prefix.mkdir(parents=True,exist_ok=True)
+target=args[args.index('--target')+1]
+name=args[args.index('--bin')+1]+('.exe' if 'windows' in target else '')
+(prefix/name).write_bytes(b'example executable')
+cache=pathlib.Path(args[args.index('--target-dir')+1])
+cache.mkdir(parents=True,exist_ok=True)
+(cache/'generated').write_bytes(b'example compilation cache')
+''')
+                cargo.chmod(0o755)
+                env = dict(os.environ, **selected, PATH=str(tools) + os.pathsep + os.environ['PATH'])
+                for name in ('DESKTOP_SOURCE_BUNDLE', 'GHOST_SOURCE_DIR', 'MMX_NODE_DIR'):
+                    env.pop(name, None)
+                helper = [sys.executable, 'scripts/build-support.py']
+                for phase in ('generated', 'restored'):
+                    for cache in [native_target, *cache_paths]:
+                        cache.mkdir(parents=True, exist_ok=True)
+                        (cache / phase).write_bytes(b'example cached output')
+                    for target in targets:
+                        for action in ('components', 'manifest', 'desktop-identity'):
+                            result = subprocess.run(helper + [action, '--target', target, '--build-root', str(build_root)], cwd=root, env=env, capture_output=True, text=True)
+                            self.assertEqual(result.returncode, 0, result.stderr)
+                            if action == 'desktop-identity':
+                                self.assertEqual(json.loads(result.stdout), {'commit': commit, 'dirty': False})
+                        manifest = json.loads((root / 'src-tauri/binaries/build-manifest.json').read_text())
+                        self.assertEqual(manifest['desktop'], {'commit': commit, 'dirty': False})
+                        self.assertEqual(manifest['target'], target)
+                        self.assertEqual(git('status', '--porcelain', '--untracked-files=all'), '')
+                    self.assertTrue(list((build_root / 'components').rglob('ghost*')))
+                    self.assertTrue(list((build_root / 'targets').rglob('generated')))
 
 
 if __name__ == '__main__':

@@ -38,8 +38,8 @@ jobs:
         shell: pwsh
         working-directory: .
     env:
-      DESKTOP_BUILD_DIR: ${{ github.workspace }}/desktop-build
-      CARGO_TARGET_DIR: ${{ github.workspace }}/desktop-build/desktop
+      DESKTOP_BUILD_DIR: ${{ github.workspace }}/artifacts/build
+      CARGO_TARGET_DIR: ${{ github.workspace }}/artifacts/build/desktop
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,7 +57,7 @@ jobs:
           # Retain successful compilation if a later installer/runtime check
           # fails, so fixing that check does not require another cold build.
           cache-on-failure: true
-          workspaces: src-tauri -> ../desktop-build/desktop
+          workspaces: src-tauri -> ../artifacts/build/desktop
           shared-key: desktop-rust-1.97-${{ hashFiles('src-tauri/Cargo.lock', 'build-dependencies.json') }}
 
       - uses: actions/cache@v4
@@ -174,8 +174,8 @@ jobs:
         shell: bash
         working-directory: .
     env:
-      DESKTOP_BUILD_DIR: ${{ github.workspace }}/desktop-build-macos
-      CARGO_TARGET_DIR: ${{ github.workspace }}/desktop-build-macos/desktop
+      DESKTOP_BUILD_DIR: ${{ github.workspace }}/artifacts/build-macos
+      CARGO_TARGET_DIR: ${{ github.workspace }}/artifacts/build-macos/desktop
       MACOSX_DEPLOYMENT_TARGET: '11.0'
     steps:
       - uses: actions/checkout@v4
@@ -191,7 +191,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-          workspaces: src-tauri -> ../desktop-build-macos/desktop
+          workspaces: src-tauri -> ../artifacts/build-macos/desktop
           shared-key: desktop-rust-1.97-${{ hashFiles('src-tauri/Cargo.lock', 'build-dependencies.json') }}
 
       - uses: actions/cache@v4

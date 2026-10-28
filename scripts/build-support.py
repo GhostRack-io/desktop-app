@@ -31,7 +31,7 @@ def pins(root=ROOT):
 
 
 def git(root, *args, binary=False):
-    return subprocess.check_output(['git', '-C', str(root), *args], text=not binary).strip()
+    return subprocess.check_output(['git', '--no-replace-objects', '-C', str(root), *args], text=not binary).strip()
 
 
 def identity(root, repository=None, revision=None):
@@ -63,7 +63,7 @@ def identity(root, repository=None, revision=None):
 
 def archive(root, commit):
     env = dict(os.environ, GIT_ATTR_NOSYSTEM='1')
-    return subprocess.check_output(['git', '-C', str(root), '-c', 'core.attributesFile=' + os.devnull,
+    return subprocess.check_output(['git', '--no-replace-objects', '-C', str(root), '-c', 'core.attributesFile=' + os.devnull,
                                     '-c', 'core.autocrlf=false', '-c', 'core.eol=lf',
                                     'archive', '--format=tar', commit], env=env)
 
