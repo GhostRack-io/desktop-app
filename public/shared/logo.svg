@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" role="img" aria-label="GhostRack">
+<title>GhostRack</title>
+<path d="M2 30V12A10 10 0 0 1 12 2H27A3 3 0 0 1 30 5V6H10V25H25V19H17V15H30V30H25.5V27.5H20.5V30H15.5V27.5H10.5V30ZM2 14L6 14 6 12 2 12ZM2 20L6 20 6 18 2 18ZM2 26L6 26 6 24 2 24Z"/>
+<path class="logo__accent" d="M2 14L6 14 6 18 2 18Z"/>
+</svg>

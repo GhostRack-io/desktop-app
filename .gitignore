@@ -1,0 +1,11 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/binaries/
+src-tauri/icons/
+src-tauri/gen/
+artifacts/
+playwright-report/
+test-results/
+__pycache__/
+*.pyc

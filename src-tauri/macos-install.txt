@@ -1,0 +1,13 @@
+Gigahost macOS preview (Apple Silicon and Intel, macOS 11 or later)
+
+Open the DMG, then drag Gigahost to Applications. Eject the DMG and open
+Gigahost from Applications. Ghost and the native Rust mmxwallet are included.
+
+This preview is ad-hoc signed, without an Apple Developer ID or notarization.
+macOS may block the first launch. If you trust the download source, try opening
+it, then use System Settings > Privacy & Security > Open Anyway and confirm.
+On macOS 11/12 this is System Preferences > Security & Privacy > General.
+
+Keys and account state are stored in your home directory, outside the app.
+Removing the application preserves them. build.json and sha256sums accompany
+the download so its source revisions and package checksum can be verified.

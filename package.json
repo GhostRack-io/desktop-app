@@ -1,0 +1,31 @@
+{
+  "name": "gigahost-desktop",
+  "private": true,
+  "version": "0.1.1",
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/assets.mjs",
+    "icons": "npm run assets && tauri icon public/shared/app-icon.svg",
+    "dev": "npm run assets && vite --host 127.0.0.1",
+    "preview": "vite preview --host 127.0.0.1 --port 1420 --strictPort",
+    "build": "npm run assets && tsc --noEmit && vite build",
+    "tauri": "tauri",
+    "test": "node --test tests/*.test.mjs",
+    "test:ui": "playwright test",
+    "test:ui:offline": "npm run build && DESKTOP_UI_OFFLINE=1 playwright test"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@tauri-apps/cli": "^2.8.0",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5"
+  },
+  "license": "Apache-2.0"
+}

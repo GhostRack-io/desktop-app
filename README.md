@@ -1,0 +1,89 @@
+# Gigahost desktop
+
+A Tauri desktop app for your Gigahost account and MMX wallet. Ghost and the
+native Rust mmxwallet are bundled; no separate CLI installation is needed.
+
+## Build
+
+Rust 1.97, Node 24 and Python 3.10 or newer are required. Linux packaging uses
+Ubuntu 22.04 with GTK/WebKit development libraries; the Docker wrapper supplies
+the build environment. Native Windows builds require PowerShell 7 and MSVC;
+macOS builds produce an ad-hoc signed universal app and DMG for macOS 11+.
+
+```sh
+npm ci
+npm test
+npm run build
+scripts/build-linux-container.sh
+```
+
+Run `scripts/build-macos.sh` on macOS or `scripts/build-windows.ps1` on Windows.
+Packages and checksums are written to `artifacts/packages`. `npm run dev` opens
+a browser preview; `npm run tauri dev` runs the native app after staging sidecars
+and icons with a package build.
+
+`build-dependencies.json` pins both components to full Git revisions. Builds use
+`cargo install --git ... --rev ... --locked --force`, with separate component,
+revision and target caches. `GHOST_SOURCE_DIR` and `MMX_NODE_DIR` optionally select
+clean checkouts with the exact origin and revision. Overrides are exported as
+tracked Git archives before building. Ignored files are excluded. Set
+`CARGO_BUILD_JOBS` to bound parallel compilation (default 4).
+
+Build records distinguish the desktop source revision, both component revisions,
+target, version and executable hashes. The environment and toolchain remain part
+of the trusted build setup.
+
+## Checks
+
+```sh
+npm test
+npm run test:ui:offline
+python3 -m unittest discover -s tests -p 'test_*.py'
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features --features test-driver
+cargo clippy --locked --manifest-path src-tauri/Cargo.toml --no-default-features --features test-driver --all-targets -- -D warnings
+```
+
+Install Playwright Chromium with `npx playwright install chromium` first. Native
+integration checks use disposable keys and local RPC/API fixtures; see
+`python3 tests/native.py --help`. Package startup checks are in
+`tests/window-state.py`, `scripts/smoke-windows.ps1` and `scripts/smoke-macos.py`.
+Run installer checks on disposable systems.
+
+## Releases
+
+The manual/tag workflow runs only for public repositories. Release tags must
+match `desktop-v` plus the configured app version. Publication verifies Windows,
+Linux and macOS artifacts, uploads immutable release objects, verifies their
+public hashes, and advances `desktop/latest.json` last. Repository secrets and
+variables configure the explicit S3 or Bunny HTTP storage transport. No
+credentials belong in source files.
+
+For verified local inputs:
+
+```sh
+python3 -m pip install -r scripts/requirements-publish.txt
+python3 scripts/publish-desktop.py --windows-dir /path/to/windows \
+  --linux-dir /path/to/linux --macos-dir /path/to/macos \
+  --version 0.1.1 --revision "$(git rev-parse HEAD)"
+```
+
+## Keys and state
+
+Wallets use `MMX_HOME` or `$HOME/.mmx`. Account keys use `GHOST_SEED_FILE`, absolute
+`XDG_CONFIG_HOME`, or `$HOME/.config/ghost/account.seed`. Windows defaults follow
+the CLIs' user-profile locations. Selected key paths are independent. Key creation
+and export never overwrite existing files. A wallet derivation passphrase changes
+its keys and does not encrypt the wallet file. Keep safe backups.
+
+Settings and operation state use `$XDG_STATE_HOME/gigahost` or
+`$HOME/.local/state/gigahost`; on Windows, `%LOCALAPPDATA%\gigahost`. Keys and
+state remain outside the install directory. Uncertain transfers retain their
+reviewed bytes and reconcile before retrying. Background refreshes never submit
+payments. The browser preview cannot sign account or wallet operations.
+
+## License
+
+Apache-2.0; see `LICENSE`. Instrument Sans and Geist Mono are separately licensed
+under the SIL Open Font License. Their notices are in `public/shared`, beside
+the font files, and all three license texts are included as readable app resources.

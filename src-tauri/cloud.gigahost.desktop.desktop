@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Gigahost
+Comment=Your Gigahost account and MMX wallet
+Exec=gigahost-desktop %u
+Icon=gigahost-desktop
+Terminal=false
+Categories=Office;Finance;
+StartupNotify=true
+StartupWMClass=Cloud.gigahost.desktop
+MimeType=x-scheme-handler/gigahost;
