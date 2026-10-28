@@ -35,6 +35,23 @@ class SourceTests(unittest.TestCase):
     def git(self, *args):
         return subprocess.check_output(['git', '-C', str(self.repo), *args], text=True, stderr=subprocess.DEVNULL).strip()
 
+    def test_snapshot_checkout_preserves_text_and_font_bytes_with_autocrlf(self):
+        (self.repo / '.gitattributes').write_bytes((support.ROOT / '.gitattributes').read_bytes())
+        shared = self.repo / 'public/shared'
+        shared.mkdir(parents=True)
+        expected = {}
+        for source in (support.ROOT / 'public/shared').iterdir():
+            expected[source.name] = source.read_bytes()
+            (shared / source.name).write_bytes(expected[source.name])
+        self.git('config', 'core.autocrlf', 'false')
+        self.git('add', '.gitattributes', 'public/shared')
+        self.git('commit', '-m', 'Example asset snapshot')
+        checkout = self.root / 'checkout'
+        subprocess.run(['git', '-c', 'core.autocrlf=true', 'clone', '--config', 'core.autocrlf=true', '--no-local', str(self.repo), str(checkout)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for name, content in expected.items():
+            self.assertEqual((checkout / 'public/shared' / name).read_bytes(), content, name)
+        self.assertEqual(subprocess.check_output(['git', '-C', str(checkout), 'status', '--porcelain']), b'')
+
     def test_identity_requires_exact_clean_origin_and_revision(self):
         expected = {'commit': self.commit, 'dirty': False}
         self.assertEqual(support.identity(self.repo, support.REPOSITORIES['ghost'], self.commit), expected)
