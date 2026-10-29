@@ -20,7 +20,7 @@ if [[ -n $override ]]; then
 fi
 if [[ -n ${MMX_NODE_DIR:-} ]]; then
     wallet_pin=$(docker run --rm -v "$inputs:/inputs:ro" "$image" python3 -c 'import json,tarfile; t=tarfile.open("/inputs/desktop.tar"); print(json.load(t.extractfile("build-dependencies.json"))["mmxwallet"]["revision"])')
-    component_revision=$(source_archive "$MMX_NODE_DIR" https://github.com/madMAx43v3r/mmx-node.git "$wallet_pin" "$inputs/mmxwallet.tar")
+    component_revision=$(source_archive "$MMX_NODE_DIR" https://github.com/mmx-network/mmx-rust-node.git "$wallet_pin" "$inputs/mmxwallet.tar")
     component_hash=$(sha256sum "$inputs/mmxwallet.tar"); component_hash=${component_hash%% *}
     printf ',"mmxwallet":{"commit":"%s","dirty":false,"sha256":"%s"}' "$component_revision" "$component_hash" >> "$inputs/identity.json"
 fi

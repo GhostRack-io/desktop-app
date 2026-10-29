@@ -24,8 +24,10 @@ and icons with a package build.
 
 `build-dependencies.json` pins both components to full Git revisions. Builds use
 `cargo install --git ... --rev ... --locked --force`, with separate component,
-revision and target caches. `GHOST_SOURCE_DIR` and `MMX_NODE_DIR` optionally select
-clean checkouts with the exact origin and revision. Overrides are exported as
+revision and target caches. The wallet source is
+`https://github.com/mmx-network/mmx-rust-node.git`. `GHOST_SOURCE_DIR` optionally
+selects a clean Ghost checkout; `MMX_NODE_DIR` selects a clean Rust wallet
+checkout. Both require the exact configured origin and revision. Overrides are exported as
 tracked Git archives before building. Ignored files are excluded. Set
 `CARGO_BUILD_JOBS` to bound parallel compilation (default 4).
 
@@ -65,7 +67,7 @@ For verified local inputs:
 python3 -m pip install -r scripts/requirements-publish.txt
 python3 scripts/publish-desktop.py --windows-dir /path/to/windows \
   --linux-dir /path/to/linux --macos-dir /path/to/macos \
-  --version 0.1.1 --revision "$(git rev-parse HEAD)"
+  --version 0.1.2 --revision "$(git rev-parse HEAD)"
 ```
 
 ## Keys and state

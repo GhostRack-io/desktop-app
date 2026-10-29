@@ -14,7 +14,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 REPOSITORIES = {'ghost': 'https://github.com/GhostRack-io/ghost-cli.git',
-                'mmxwallet': 'https://github.com/madMAx43v3r/mmx-node.git'}
+                'mmxwallet': 'https://github.com/mmx-network/mmx-rust-node.git'}
 
 
 def pins(root=ROOT):

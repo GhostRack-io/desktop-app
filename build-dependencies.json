@@ -7,8 +7,8 @@
     "binary": "ghost"
   },
   "mmxwallet": {
-    "repository": "https://github.com/madMAx43v3r/mmx-node.git",
-    "revision": "15c4031f5db68dafce50bde6b0743a5795c9baaf",
+    "repository": "https://github.com/mmx-network/mmx-rust-node.git",
+    "revision": "9be12e26619b5ec3d61910ca029e1bb453f68004",
     "package": "mmxwallet",
     "binary": "mmxwallet"
   }

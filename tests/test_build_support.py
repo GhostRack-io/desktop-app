@@ -176,6 +176,84 @@ root=pathlib.Path(args[args.index('--root')+1]); (root/'bin').mkdir(parents=True
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(b'own', result.stderr)
 
+    @unittest.skipIf(os.name == 'nt', 'Linux wrapper uses Bash')
+    def test_linux_wrapper_validates_wallet_origin_pin_and_archive(self):
+        wallet_origin = 'https://github.com/mmx-network/mmx-rust-node.git'
+        self.git('remote', 'set-url', 'origin', wallet_origin)
+        (self.repo / '.cargo').mkdir()
+        (self.repo / '.cargo/config.toml').write_text('ignored extra input')
+        desktop = self.root / 'desktop'
+        (desktop / 'scripts').mkdir(parents=True)
+        for name in ('source-archive.sh', 'build-linux-container.sh'):
+            shutil.copyfile(support.ROOT / 'scripts' / name, desktop / 'scripts' / name)
+        config = support.pins()
+        self.assertEqual(config['mmxwallet']['repository'], wallet_origin)
+        config['mmxwallet']['revision'] = self.commit
+        (desktop / 'build-dependencies.json').write_text(json.dumps(config))
+        (desktop / '.gitignore').write_text('artifacts/\n')
+        def desktop_git(*args):
+            return subprocess.check_output(['git', '-C', str(desktop), *args], stderr=subprocess.DEVNULL)
+        desktop_git('init', '-b', 'main')
+        desktop_git('config', 'user.name', 'Example')
+        desktop_git('config', 'user.email', 'example@example.com')
+        desktop_git('remote', 'add', 'origin', 'https://github.com/GhostRack-io/desktop-app.git')
+        desktop_git('add', 'scripts', 'build-dependencies.json', '.gitignore')
+        desktop_git('commit', '-m', 'Example desktop source')
+        tools = self.root / 'tools'
+        tools.mkdir()
+        docker = tools / 'docker'
+        docker.write_text('#!' + sys.executable + '\n' + '''import json,os,pathlib,shutil,sys,tarfile
+args=sys.argv[1:]
+if args[0]=='build':
+    sys.exit(0)
+mounts=[args[i+1] for i,a in enumerate(args) if a in ('-v','--volume')]
+bundle=pathlib.Path(next(m.split(':')[0] for m in mounts if m.endswith(':/inputs:ro')))
+if 'python3' in args:
+    # Read the real archived configuration at the container boundary.
+    with tarfile.open(bundle/'desktop.tar') as archive:
+        config=json.load(archive.extractfile('build-dependencies.json'))
+    component='mmxwallet' if '["mmxwallet"]' in args[-1] else 'ghost'
+    print(config[component]['revision'])
+else:
+    shutil.copytree(bundle, os.environ['CAPTURE_BUNDLE'])
+''')
+        docker.chmod(0o755)
+        captured = self.root / 'captured'
+        env = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ['PATH'],
+                   MMX_NODE_DIR=str(self.repo), CAPTURE_BUNDLE=str(captured))
+        env.pop('GHOST_SOURCE_DIR', None)
+        def run():
+            return subprocess.run(['bash', str(desktop / 'scripts/build-linux-container.sh')],
+                                  env=env, capture_output=True, text=True)
+        accepted = run()
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        metadata = json.loads((captured / 'identity.json').read_text())
+        self.assertEqual(metadata['mmxwallet']['commit'], self.commit)
+        self.assertFalse(metadata['mmxwallet']['dirty'])
+        archive = (captured / 'mmxwallet.tar').read_bytes()
+        self.assertEqual(metadata['mmxwallet']['sha256'], hashlib.sha256(archive).hexdigest())
+        snapshot = self.root / 'snapshot'
+        snapshot.mkdir()
+        support.extract(archive, snapshot)
+        self.assertTrue((snapshot / 'Cargo.lock').is_file())
+        self.assertFalse((snapshot / '.cargo').exists())
+        shutil.rmtree(captured)
+        self.git('remote', 'set-url', 'origin', 'https://example.com/unrelated.git')
+        refused = run()
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn('origin', refused.stderr)
+        self.assertFalse(captured.exists())
+        self.git('remote', 'set-url', 'origin', wallet_origin)
+        (self.repo / 'Cargo.lock').write_text('dirty tracked input')
+        refused = run()
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn('dirty', refused.stderr)
+        self.assertFalse(captured.exists())
+        self.git('add', 'Cargo.lock')
+        self.git('commit', '-m', 'Example different revision')
+        self.assertNotEqual(run().returncode, 0)
+        self.assertFalse(captured.exists())
+
     def test_pin_configuration_rejects_mutable_or_unexpected_sources(self):
         config = support.pins()
         config['ghost']['revision'] = 'main'
