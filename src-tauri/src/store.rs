@@ -29,7 +29,7 @@ impl Default for Settings {
             rpc_url: "https://rpc.mmx.network".into(),
             api_url: "https://api.gigahost.cloud".into(),
             website_url: "https://gigahost.cloud".into(),
-            theme: "system".into(),
+            theme: "dark".into(),
             account_index: 0,
             num_addresses: 1,
         }

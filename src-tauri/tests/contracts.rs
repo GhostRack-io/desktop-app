@@ -3,6 +3,26 @@ use gigahost_desktop::controller::{
     github_unlink_args, restore_charge, validate_url,
 };
 use gigahost_desktop::payouts::{amount_microusd, valid_address};
+use gigahost_desktop::store::{Settings, Store};
+#[test]
+fn fresh_settings_use_dark_and_saved_theme_choices_survive_reopening() {
+    let home = tempfile::tempdir().unwrap();
+    let store = Store::new(home.path().into()).unwrap();
+    assert_eq!(store.settings().unwrap().theme, "dark");
+    assert_eq!(
+        serde_json::from_str::<Settings>("{}").unwrap().theme,
+        "dark"
+    );
+    for theme in ["light", "dark", "system"] {
+        let settings = Settings {
+            theme: theme.into(),
+            ..Settings::default()
+        };
+        store.save_settings(&settings).unwrap();
+        let reopened = Store::new(home.path().into()).unwrap();
+        assert_eq!(reopened.settings().unwrap().theme, theme);
+    }
+}
 #[test]
 fn payout_amounts_are_exact_and_dollar_input_is_strict() {
     assert_eq!(amount_microusd("").unwrap(), None);
