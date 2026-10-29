@@ -1319,7 +1319,7 @@ form[data-action="offering.rent"]{display:flex}
 .http-proxy-footer>button{justify-self:start}
 .http-proxy-status{display:grid;gap:var(--space-2);min-inline-size:0;flex:1}
 .http-proxy-status p,.http-proxy-footer p{margin:0}
-.http-proxy-fields{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr);gap:var(--space-4);padding-block-start:var(--space-3);border-block-start:var(--border) solid var(--color-border)}
+.http-proxy-fields{display:grid;grid-template-columns:1.2fr 2fr;gap:var(--space-4);padding-block-start:var(--space-3);border-block-start:var(--border) solid var(--color-border)}
 .http-proxy-fields .field{min-inline-size:0;margin:0}
 .http-proxy-fields input,.http-proxy-fields select{width:100%;min-width:0}
 .http-proxy-toolbar{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center}
@@ -1329,8 +1329,8 @@ form[data-action="offering.rent"]{display:flex}
 .http-proxy-url,.http-proxy-status code{overflow-wrap:anywhere;white-space:normal}
 .http-proxy-url{display:block}
 .http-proxy-rows:empty{display:none}
-@media (min-width:56em){.http-proxy-fields{grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr) minmax(0,1.6fr) minmax(0,.85fr) minmax(11rem,.9fr)}.http-proxy-fields:has(.http-proxy-routing-hostname[hidden]){grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr) minmax(0,.85fr) minmax(11rem,.9fr)}}
-@media not all and (min-width:36em){.http-proxy-fields{grid-template-columns:minmax(0,1fr)}.http-proxy-card-header{flex-direction:column;align-items:stretch}.http-proxy-actions{justify-content:start}}
+@media (min-width:56em){.http-proxy-fields{grid-template-columns:.9fr 1.6fr 1.6fr .85fr minmax(11rem,.9fr)}.http-proxy-fields.is-passthrough{grid-template-columns:.9fr 1.6fr .85fr minmax(11rem,.9fr)}}
+@media not all and (min-width:36em){.http-proxy-fields{grid-template-columns:1fr}.http-proxy-card-header{flex-direction:column;align-items:stretch}.http-proxy-actions{justify-content:start}}
 
 
 
