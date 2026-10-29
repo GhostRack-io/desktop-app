@@ -67,7 +67,7 @@ For verified local inputs:
 python3 -m pip install -r scripts/requirements-publish.txt
 python3 scripts/publish-desktop.py --windows-dir /path/to/windows \
   --linux-dir /path/to/linux --macos-dir /path/to/macos \
-  --version 0.1.4 --revision "$(git rev-parse HEAD)"
+  --version 0.1.5 --revision "$(git rev-parse HEAD)"
 ```
 
 ## Keys and state

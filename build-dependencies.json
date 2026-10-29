@@ -8,7 +8,7 @@
   },
   "mmxwallet": {
     "repository": "https://github.com/mmx-network/mmx-rust-node.git",
-    "revision": "721d21e4f94899b1529d6d8bb1c3112053d9de2b",
+    "revision": "0bbdc0a2a4d38c5dd59d5cbc771653dd24403045",
     "package": "mmxwallet",
     "binary": "mmxwallet"
   }
