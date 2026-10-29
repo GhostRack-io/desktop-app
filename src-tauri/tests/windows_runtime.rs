@@ -3,7 +3,7 @@
 use gigahost_desktop::{
     Controller, Request,
     controller::{ghost_default, state_default},
-    process::Runner,
+    process::{Runner, Secret},
     store::{Settings, Store},
 };
 use serde_json::{Value, json};
@@ -169,7 +169,7 @@ async fn sidecars_keep_json_pipes_without_creating_a_console() {
                 "-Command".into(),
                 script.into(),
             ],
-            Some(json!({"disposable":"pipe-check"})),
+            Some(Secret::Json(json!({"disposable":"pipe-check"}))),
             false,
         )
         .await
