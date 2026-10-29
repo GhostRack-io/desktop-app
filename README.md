@@ -85,3 +85,23 @@ CDN publication can succeed before final GitHub publication fails.
 Offline validation can use `scripts/publish-github-release.py --dry-run` with
 package directories, version and revision; it performs no uploads and needs no
 credentials. Actions owns release publication.
+
+## Keys and state
+
+Wallets use `MMX_HOME` or `$HOME/.mmx`. Account keys use `GHOST_SEED_FILE`, absolute
+`XDG_CONFIG_HOME`, or `$HOME/.config/ghost/account.seed`. Windows defaults follow
+the CLIs' user-profile locations. Selected key paths are independent. Key creation
+and export never overwrite existing files. A wallet derivation passphrase changes
+its keys and does not encrypt the wallet file. Keep safe backups.
+
+Settings and operation state use `$XDG_STATE_HOME/gigahost` or
+`$HOME/.local/state/gigahost`; on Windows, `%LOCALAPPDATA%\gigahost`. Keys and
+state remain outside the install directory. Uncertain transfers retain their
+reviewed bytes and reconcile before retrying. Background refreshes never submit
+payments. The browser preview cannot sign account or wallet operations.
+
+## License
+
+Apache-2.0; see `LICENSE`. Instrument Sans and Geist Mono are separately licensed
+under the SIL Open Font License. Their notices are in `public/shared`, beside
+the font files, and all three license texts are included as readable app resources.
