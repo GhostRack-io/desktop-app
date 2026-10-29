@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Validate ownership before reading repository settings or exporting tracked files.
 source_archive() {
-    local source=$1 expected_origin=$2 expected_revision=$3 output=$4 root gitdir configured attributes commit
+    local source=$1 expected_origin=$2 expected_revision=$3 output=$4 root gitdir configured attributes commit origin
     [[ ! -L $source/.git && -e $source/.git ]] || { printf 'Source must own its Git metadata.\n' >&2; return 1; }
     root=$(cd "$source" && pwd -P)
     [[ $(git --no-replace-objects -C "$source" rev-parse --show-toplevel) == "$root" ]] || return 1
@@ -11,7 +11,8 @@ source_archive() {
         [[ $configured == /* ]] || configured=$gitdir/$configured
         [[ $(cd "$configured" && pwd -P) == "$root" ]] || return 1
     fi
-    [[ $(git --no-replace-objects -C "$source" remote get-url origin) == "$expected_origin" ]] || { printf 'Source origin differs.\n' >&2; return 1; }
+    origin=$(git --no-replace-objects -C "$source" remote get-url origin)
+    [[ $origin == "$expected_origin" || ( $expected_origin == https://github.com/*.git && $origin == "${expected_origin%.git}" ) ]] || { printf 'Source origin differs.\n' >&2; return 1; }
     commit=$(git --no-replace-objects -C "$source" rev-parse HEAD)
     [[ $commit =~ ^[0-9a-f]{40}$ && ( -z $expected_revision || $commit == "$expected_revision" ) ]] || return 1
     [[ -z $(git --no-replace-objects -C "$source" status --porcelain --untracked-files=all) ]] || { printf 'Source is dirty.\n' >&2; return 1; }

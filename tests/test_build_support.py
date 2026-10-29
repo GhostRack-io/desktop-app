@@ -66,6 +66,77 @@ class SourceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'dirty'):
             support.identity(self.repo)
 
+    def origin_cases(self):
+        desktop = 'https://github.com/GhostRack-io/desktop-app.git'
+        for expected in (desktop, *support.REPOSITORIES.values()):
+            for actual in (expected, expected[:-4]):
+                yield expected, actual, True
+        for actual in (
+                'https://github.com/Other/desktop-app.git',
+                'https://github.com/GhostRack-io/other.git',
+                'http://github.com/GhostRack-io/desktop-app.git',
+                'ssh://git@github.com/GhostRack-io/desktop-app.git',
+                'git@github.com:GhostRack-io/desktop-app.git',
+                'https://user@github.com/GhostRack-io/desktop-app.git',
+                'https://github.com.example.com/GhostRack-io/desktop-app.git',
+                'https://GITHUB.com/GhostRack-io/desktop-app.git',
+                'https://github.com/ghostrack-io/desktop-app.git',
+                'https://github.com/GhostRack-io/../GhostRack-io/desktop-app.git',
+                desktop + '.git', desktop + '/', desktop[:-4] + '/',
+                desktop + '?ref=main', desktop[:-4] + '?ref=main',
+                desktop + '#main', desktop[:-4] + '#main', desktop + '/extra',
+                desktop[:-4] + '.gi', desktop[:-4] + '.g', desktop + 'git'):
+            yield desktop, actual, False
+        for expected in (
+                'https://example.com/GhostRack-io/desktop-app.git',
+                'http://github.com/GhostRack-io/desktop-app.git',
+                'ssh://git@github.com/GhostRack-io/desktop-app.git',
+                'git@github.com:GhostRack-io/desktop-app.git',
+                'https://user@github.com/GhostRack-io/desktop-app.git',
+                'https://GITHUB.com/GhostRack-io/desktop-app.git'):
+            yield expected, expected, True
+            yield expected, expected[:-4], False
+        yield desktop[:-4], desktop[:-4], True
+        yield desktop[:-4], desktop, False
+
+    def test_python_identity_allows_only_exact_github_origin_spellings(self):
+        for expected, actual, accepted in self.origin_cases():
+            with self.subTest(expected=expected, actual=actual):
+                self.git('remote', 'set-url', 'origin', actual)
+                if accepted:
+                    self.assertEqual(support.identity(self.repo, expected, self.commit),
+                                     {'commit': self.commit, 'dirty': False})
+                    with self.assertRaisesRegex(ValueError, 'revision'):
+                        support.identity(self.repo, expected, '0' * 40)
+                else:
+                    with self.assertRaisesRegex(ValueError, 'origin'):
+                        support.identity(self.repo, expected, self.commit)
+                self.assertEqual(self.git('remote', 'get-url', 'origin'), actual)
+        self.assertEqual(support.identity(self.repo, repository=None, revision=self.commit),
+                         {'commit': self.commit, 'dirty': False})
+
+    @unittest.skipIf(os.name == 'nt', 'Linux wrapper uses Bash')
+    def test_shell_exporter_allows_only_exact_github_origin_spellings(self):
+        for index, (expected, actual, accepted) in enumerate(self.origin_cases()):
+            with self.subTest(expected=expected, actual=actual):
+                self.git('remote', 'set-url', 'origin', actual)
+                output = self.root / ('origin-' + str(index) + '.tar')
+                command = ['bash', '-c', 'set -euo pipefail; source "$1"; source_archive "$2" "$3" "$4" "$5"', '--', str(support.ROOT / 'scripts/source-archive.sh'), str(self.repo), expected, self.commit, str(output)]
+                result = subprocess.run(command, capture_output=True, text=True)
+                if accepted:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stdout, self.commit)
+                    self.assertEqual(output.read_bytes(), support.archive(self.repo, self.commit))
+                    output.unlink()
+                    command[-2] = '0' * 40
+                    self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+                    self.assertFalse(output.exists())
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('Source origin differs', result.stderr)
+                    self.assertFalse(output.exists())
+                self.assertEqual(self.git('remote', 'get-url', 'origin'), actual)
+
     def install_replacement(self, kind):
         original = subprocess.check_output(['git', '--no-replace-objects', '-C', str(self.repo), 'show', self.commit + ':Cargo.lock'])
         blob = self.git('rev-parse', self.commit + ':Cargo.lock')
@@ -196,9 +267,10 @@ root=pathlib.Path(args[args.index('--root')+1]); (root/'bin').mkdir(parents=True
         desktop_git('init', '-b', 'main')
         desktop_git('config', 'user.name', 'Example')
         desktop_git('config', 'user.email', 'example@example.com')
-        desktop_git('remote', 'add', 'origin', 'https://github.com/GhostRack-io/desktop-app.git')
+        desktop_git('remote', 'add', 'origin', 'https://github.com/GhostRack-io/desktop-app')
         desktop_git('add', 'scripts', 'build-dependencies.json', '.gitignore')
         desktop_git('commit', '-m', 'Example desktop source')
+        desktop_commit = desktop_git('rev-parse', 'HEAD').decode().strip()
         tools = self.root / 'tools'
         tools.mkdir()
         docker = tools / 'docker'
@@ -228,6 +300,10 @@ else:
         accepted = run()
         self.assertEqual(accepted.returncode, 0, accepted.stderr)
         metadata = json.loads((captured / 'identity.json').read_text())
+        self.assertEqual(metadata['desktop']['commit'], desktop_commit)
+        self.assertFalse(metadata['desktop']['dirty'])
+        self.assertEqual(desktop_git('remote', 'get-url', 'origin').decode().strip(),
+                         'https://github.com/GhostRack-io/desktop-app')
         self.assertEqual(metadata['mmxwallet']['commit'], self.commit)
         self.assertFalse(metadata['mmxwallet']['dirty'])
         archive = (captured / 'mmxwallet.tar').read_bytes()

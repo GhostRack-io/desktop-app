@@ -48,8 +48,12 @@ def identity(root, repository=None, revision=None):
             worktree = gitdir / worktree
         if worktree.resolve() != root:
             raise ValueError('Git metadata belongs to another source')
-    if repository and git(root, 'remote', 'get-url', 'origin') != repository:
-        raise ValueError('Source origin differs')
+    if repository:
+        origins = {repository}
+        if repository.startswith('https://github.com/') and repository.endswith('.git'):
+            origins.add(repository[:-4])
+        if git(root, 'remote', 'get-url', 'origin') not in origins:
+            raise ValueError('Source origin differs')
     commit = git(root, 'rev-parse', 'HEAD')
     if not re.fullmatch('[0-9a-f]{40}', commit) or (revision and commit != revision):
         raise ValueError('Source revision differs')
