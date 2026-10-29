@@ -174,8 +174,47 @@ test('removing an older recovery location saves the remaining registry', async (
   expect(await page.evaluate(()=>(window as any).calls.find((r:any)=>r.action === 'save_settings').settings.recovery_seed_files)).toEqual(['/tmp/second.seed']);
 });
 
-test('appearance changes keep the loaded passphrase and explicit forget clears it', async ({page}) => {
+test('regular wallets do not offer an unlock action', async ({page}) => {
   await openDesktop(page);
+  await expect(page.getByRole('button',{name:'Unlock wallet',exact:true})).toHaveCount(0);
+  await page.getByRole('link',{name:'Wallet',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Unlock wallet',exact:true})).toHaveCount(0);
+  await page.getByRole('tab',{name:'Receive',exact:true}).click();
+  await expect(page.locator('#receive-address')).toHaveText(address);
+  await expect(page.getByRole('button',{name:'Unlock wallet',exact:true})).toHaveCount(0);
+});
+
+for (const code of ['passphrase_required','invalid_passphrase']) test(`wallet unlock stays available for ${code}`, async ({page}) => {
+  const state:any=structuredClone(fixture);
+  for (const field of ['addresses','balance','history']) state.wallet[field]={data:null,error:{code,message:'Enter the wallet derivation passphrase'}};
+  await openDesktop(page,state);
+  await expect(page.getByRole('button',{name:'Unlock wallet',exact:true})).toBeVisible();
+  await page.getByRole('link',{name:'Wallet',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Unlock wallet',exact:true})).toBeVisible();
+  await page.getByRole('tab',{name:'Receive',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Unlock your wallet.',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Unlock wallet',exact:true}).click();
+  await expect(page.getByLabel('Derivation passphrase',{exact:true})).toBeVisible();
+});
+
+for (const code of ['rpc_transport_error','wallet_file_invalid']) test(`wallet ${code} does not request a passphrase`, async ({page}) => {
+  const state:any=structuredClone(fixture);
+  state.wallet.addresses={data:null,error:{code,message:'Receiving addresses could not be loaded'}};
+  state.wallet.balance={data:null,error:{code,message:'Balance could not be loaded'}};
+  await openDesktop(page,state);
+  await expect(page.getByRole('button',{name:'Unlock wallet',exact:true})).toHaveCount(0);
+  await page.getByRole('link',{name:'Wallet',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Unlock wallet',exact:true})).toHaveCount(0);
+  await page.getByRole('tab',{name:'Receive',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Receiving address unavailable.',exact:true})).toBeVisible();
+  await expect(page.getByText('Receiving addresses could not be loaded',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Unlock wallet',exact:true})).toHaveCount(0);
+});
+
+test('appearance changes keep the loaded passphrase and explicit forget clears it', async ({page}) => {
+  const state:any=structuredClone(fixture);
+  state.wallet.balance={data:null,error:{code:'passphrase_required',message:'passphrase required'}};
+  await openDesktop(page,state);
   await page.getByRole('button',{name:'Send MMX'}).click();
   await page.getByRole('button',{name:'Unlock wallet',exact:true}).click();
   await page.getByLabel('Derivation passphrase',{exact:true}).fill('private test phrase');
