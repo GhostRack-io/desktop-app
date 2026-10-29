@@ -54,38 +54,34 @@ Run installer checks on disposable systems.
 
 ## Releases
 
-The manual/tag workflow runs only for public repositories. Release tags must
-match `desktop-v` plus the configured app version. Publication verifies Windows,
-Linux and macOS artifacts, uploads immutable release objects, verifies their
-public hashes, and advances `desktop/latest.json` last. Repository secrets and
-variables configure the explicit S3 or Bunny HTTP storage transport. No
-credentials belong in source files.
+Download installers from [GitHub Releases](https://github.com/GhostRack-io/desktop-app/releases/latest)
+or the [CDN catalog](https://apps.gigahost.cloud/desktop/latest.json).
 
-For verified local inputs:
+The public repository's Desktop packages Action builds and checks Windows, Linux
+and universal macOS packages. Manual runs default to checking only; select
+`publish` to upload to both GitHub Releases and the CDN. Matching
+`desktop-v<configured version>` tags also publish. `macos_only` never publishes.
+The source revision and configured version must match every build record.
 
-```sh
-python3 -m pip install -r scripts/requirements-publish.txt
-python3 scripts/publish-desktop.py --windows-dir /path/to/windows \
-  --linux-dir /path/to/linux --macos-dir /path/to/macos \
-  --version 0.1.5 --revision "$(git rev-parse HEAD)"
-```
+Set the Actions secret `CDN_STORAGE_PASSWORD` and allow this repository to use it.
+The publish job alone receives storage credentials and `GITHUB_TOKEN` with
+`contents: write`. Optional Actions variables: `CDN_STORAGE_ENDPOINT` (default
+`https://sg.storage.bunnycdn.com`), `CDN_STORAGE_ZONE` (`gigahost-apps`),
+`CDN_PUBLIC_BASE` (`https://apps.gigahost.cloud`) and `DESKTOP_CDN_PREFIX`
+(`desktop`). Existing `DESKTOP_STORAGE_PASSWORD`, `DESKTOP_STORAGE_ENDPOINT`,
+`DESKTOP_S3_BUCKET`, `DESKTOP_S3_PREFIX` and `DESKTOP_PUBLIC_BASE` settings remain
+fallbacks. `DESKTOP_UPLOAD_TRANSPORT=s3` retains the S3 adapter with
+`DESKTOP_S3_ENDPOINT`, `DESKTOP_S3_REGION`, `DESKTOP_S3_ACCESS_KEY_ID` and
+`DESKTOP_S3_SECRET_ACCESS_KEY`.
 
-## Keys and state
+Publication freezes one verified asset set, reconciles a GitHub draft, verifies
+immutable CDN objects and public downloads, then writes and verifies `latest.json`
+and publishes GitHub last. On failure, rerun the failed publish job using the same
+workflow artifacts. Identical objects resume; conflicting or incomplete published
+releases fail without replacing assets or moving tags. A matching published
+GitHub release still reconciles CDN publication. The providers are not atomic;
+CDN publication can succeed before final GitHub publication fails.
 
-Wallets use `MMX_HOME` or `$HOME/.mmx`. Account keys use `GHOST_SEED_FILE`, absolute
-`XDG_CONFIG_HOME`, or `$HOME/.config/ghost/account.seed`. Windows defaults follow
-the CLIs' user-profile locations. Selected key paths are independent. Key creation
-and export never overwrite existing files. A wallet derivation passphrase changes
-its keys and does not encrypt the wallet file. Keep safe backups.
-
-Settings and operation state use `$XDG_STATE_HOME/gigahost` or
-`$HOME/.local/state/gigahost`; on Windows, `%LOCALAPPDATA%\gigahost`. Keys and
-state remain outside the install directory. Uncertain transfers retain their
-reviewed bytes and reconcile before retrying. Background refreshes never submit
-payments. The browser preview cannot sign account or wallet operations.
-
-## License
-
-Apache-2.0; see `LICENSE`. Instrument Sans and Geist Mono are separately licensed
-under the SIL Open Font License. Their notices are in `public/shared`, beside
-the font files, and all three license texts are included as readable app resources.
+Offline validation can use `scripts/publish-github-release.py --dry-run` with
+package directories, version and revision; it performs no uploads and needs no
+credentials. Actions owns release publication.

@@ -137,7 +137,7 @@ class BunnyHTTPStorage:
 def create_client(transport, endpoint, region):
     if transport == "bunny-http":
         endpoint = endpoint or "https://sg.storage.bunnycdn.com"
-        password = os.environ.get("DESKTOP_STORAGE_PASSWORD") or os.environ.get("AWS_SECRET_ACCESS_KEY")
+        password = os.environ.get("CDN_STORAGE_PASSWORD") or os.environ.get("DESKTOP_STORAGE_PASSWORD") or os.environ.get("AWS_SECRET_ACCESS_KEY")
         return BunnyHTTPStorage(endpoint, password)
     if transport != "s3":
         raise ValueError("Storage transport must be s3 or bunny-http")
@@ -167,10 +167,14 @@ def prepare(windows, linux, version, revision, prefix, public_base, macos=None):
         "windows_x64": [f"gigahost_{filename_version}_windows_x64.zip"],
         "linux_x64": [f"gigahost_{filename_version}_amd64.deb", f"gigahost_{filename_version}_amd64.appimage"],
     }
-    platforms = [("windows_x64", windows), ("linux_x64", linux)]
+    platforms = [(name, directory) for name, directory in
+                 [("windows_x64", windows), ("linux_x64", linux)] if directory is not None]
     if macos is not None:
         package_names["macos_universal"] = [f"gigahost_{filename_version}_macos_universal.dmg"]
         platforms.append(("macos_universal", macos))
+    if not platforms:
+        raise ValueError("Supply at least one platform directory")
+    package_names = {name: package_names[name] for name, _ in platforms}
     uploads = {}
     for platform, directory in platforms:
         manifest = json.loads((directory / "build.json").read_text())

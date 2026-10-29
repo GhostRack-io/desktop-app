@@ -1,12 +1,12 @@
 name: Desktop packages
 
 # No automatic master/PR builds. Dispatch produces a reviewable artifact;
-# a version-matched desktop tag also publishes checked packages to the CDN.
+# a version-matched desktop tag also publishes checked packages to GitHub Releases and the CDN.
 on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish checked Windows, Linux, and macOS packages to the configured CDN
+        description: Publish checked Windows, Linux, and macOS packages to GitHub Releases and CDN
         type: boolean
         default: false
       macos_only:
@@ -167,7 +167,7 @@ jobs:
   macos:
     if: ${{ !github.event.repository.private }}
     # Explicit Apple Silicon runner; macos-latest changes across OS versions.
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 120
     defaults:
       run:
@@ -253,18 +253,20 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: gigahost-macos-universal
-          path: packages/macos
+          path: artifacts/downloads/macos
 
       - name: Install and launch the same DMG natively on Intel
-        run: python3 scripts/smoke-macos.py --packages packages/macos --native-arch x86_64
+        run: python3 scripts/smoke-macos.py --packages artifacts/downloads/macos --native-arch x86_64
 
   publish:
+    permissions:
+      contents: write
     if: ${{ !github.event.repository.private && !inputs.macos_only && (startsWith(github.ref, 'refs/tags/desktop-v') || inputs.publish) }}
     needs: [build, linux, macos-intel]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     concurrency:
-      group: desktop-cdn-publish
+      group: desktop-release-publication
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -274,36 +276,39 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: gigahost-windows-x64
-          path: packages/windows
+          path: artifacts/downloads/windows
 
       - uses: actions/download-artifact@v4
         with:
           name: gigahost-linux-x64
-          path: packages/linux
+          path: artifacts/downloads/linux
 
       - uses: actions/download-artifact@v4
         with:
           name: gigahost-macos-universal
-          path: packages/macos
+          path: artifacts/downloads/macos
 
-      - name: Install the publisher dependencies
+      - name: Install publisher dependencies
         run: python3 -m pip install -r scripts/requirements-publish.txt
 
       - name: Verify and publish all desktop packages
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          CDN_STORAGE_PASSWORD: ${{ secrets.CDN_STORAGE_PASSWORD || secrets.DESKTOP_STORAGE_PASSWORD }}
+          CDN_STORAGE_ENDPOINT: ${{ vars.CDN_STORAGE_ENDPOINT || vars.DESKTOP_STORAGE_ENDPOINT }}
+          CDN_STORAGE_ZONE: ${{ vars.CDN_STORAGE_ZONE || vars.DESKTOP_S3_BUCKET }}
+          CDN_PUBLIC_BASE: ${{ vars.CDN_PUBLIC_BASE || vars.DESKTOP_PUBLIC_BASE }}
+          DESKTOP_CDN_PREFIX: ${{ vars.DESKTOP_CDN_PREFIX || vars.DESKTOP_S3_PREFIX }}
+          DESKTOP_UPLOAD_TRANSPORT: ${{ vars.DESKTOP_UPLOAD_TRANSPORT || 'bunny-http' }}
+          DESKTOP_S3_REGION: ${{ vars.DESKTOP_S3_REGION }}
+          DESKTOP_S3_ENDPOINT: ${{ vars.DESKTOP_S3_ENDPOINT }}
           AWS_ACCESS_KEY_ID: ${{ secrets.DESKTOP_S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DESKTOP_S3_SECRET_ACCESS_KEY }}
-          DESKTOP_STORAGE_PASSWORD: ${{ secrets.DESKTOP_STORAGE_PASSWORD }}
-          DESKTOP_UPLOAD_TRANSPORT: ${{ vars.DESKTOP_UPLOAD_TRANSPORT || 's3' }}
-          DESKTOP_STORAGE_ENDPOINT: ${{ vars.DESKTOP_STORAGE_ENDPOINT }}
-          DESKTOP_S3_ENDPOINT: ${{ vars.DESKTOP_S3_ENDPOINT }}
-          DESKTOP_S3_BUCKET: ${{ vars.DESKTOP_S3_BUCKET || 'gigahost-apps' }}
-          DESKTOP_S3_REGION: ${{ vars.DESKTOP_S3_REGION || 'sg' }}
-          DESKTOP_S3_PREFIX: ${{ vars.DESKTOP_S3_PREFIX || 'desktop' }}
-          DESKTOP_PUBLIC_BASE: ${{ vars.DESKTOP_PUBLIC_BASE || 'https://apps.gigahost.cloud' }}
-          BUILD_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
           version=$(python3 -c 'import json; print(json.load(open("src-tauri/tauri.conf.json"))["version"])')
-          python3 scripts/publish-desktop.py --windows-dir packages/windows \
-            --linux-dir packages/linux --macos-dir packages/macos --version "$version" --revision "$BUILD_REVISION"
+          revision=$(git rev-parse HEAD)
+          python3 scripts/publish-github-release.py --windows-dir artifacts/downloads/windows \
+            --linux-dir artifacts/downloads/linux --macos-dir artifacts/downloads/macos --version "$version" \
+            --revision "$revision" --repository "$RELEASE_REPOSITORY"
