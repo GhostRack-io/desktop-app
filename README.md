@@ -1,6 +1,6 @@
-# Gigahost desktop
+# GhostRack desktop
 
-A Tauri desktop app for your Gigahost account and MMX wallet. Ghost and the
+A Tauri desktop app for your GhostRack account and MMX wallet. Ghost and the
 native Rust mmxwallet are bundled; no separate CLI installation is needed.
 
 ## Build
@@ -54,8 +54,8 @@ Run installer checks on disposable systems.
 
 ## Releases
 
-Download installers from [GitHub Releases](https://github.com/GhostRack-io/desktop-app/releases/latest)
-or the [CDN catalog](https://apps.gigahost.cloud/desktop/latest.json).
+Download installers from [GitHub Releases](https://github.com/ghostrack-io/desktop-app/releases/latest)
+or the [CDN catalog](https://apps.ghostrack.io/desktop/latest.json).
 
 The public repository's Desktop packages Action builds and checks Windows, Linux
 and universal macOS packages. Manual runs default to checking only; select
@@ -67,7 +67,7 @@ Set the Actions secret `CDN_STORAGE_PASSWORD` and allow this repository to use i
 The publish job alone receives storage credentials and `GITHUB_TOKEN` with
 `contents: write`. Optional Actions variables: `CDN_STORAGE_ENDPOINT` (default
 `https://sg.storage.bunnycdn.com`), `CDN_STORAGE_ZONE` (`gigahost-apps`),
-`CDN_PUBLIC_BASE` (`https://apps.gigahost.cloud`) and `DESKTOP_CDN_PREFIX`
+`CDN_PUBLIC_BASE` (`https://apps.ghostrack.io`) and `DESKTOP_CDN_PREFIX`
 (`desktop`). Existing `DESKTOP_STORAGE_PASSWORD`, `DESKTOP_STORAGE_ENDPOINT`,
 `DESKTOP_S3_BUCKET`, `DESKTOP_S3_PREFIX` and `DESKTOP_PUBLIC_BASE` settings remain
 fallbacks. `DESKTOP_UPLOAD_TRANSPORT=s3` retains the S3 adapter with

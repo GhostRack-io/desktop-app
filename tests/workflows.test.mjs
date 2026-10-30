@@ -81,6 +81,6 @@ test('the linked GitHub account reads as one line from the object ghost account 
 });
 test('activating names the Terms and asks that the service starts at once, as the website and ghost do', () => {
   assert.match(SIGNUP_AGREEMENT, /^By activating the account, with GitHub or with a deposit, you agree to the Terms of Service and the Acceptable Use Policy/);
-  assert.match(SIGNUP_AGREEMENT, /gigahost\.cloud\/terms/);
+  assert.match(SIGNUP_AGREEMENT, /ghostrack\.io\/terms/);
   assert.match(SIGNUP_AGREEMENT, /ask that the service starts at once\.$/);
 });

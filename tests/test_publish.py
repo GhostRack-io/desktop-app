@@ -84,18 +84,18 @@ class Publishing(unittest.TestCase):
         for directory, target in [(self.windows, "x86_64-pc-windows-msvc"), (self.linux, "x86_64-unknown-linux-gnu")]:
             directory.mkdir()
             manifest = {"target": target, "desktop": {"commit": self.revision, "dirty": False}, "ghost": {"commit": publisher.GHOST_REVISION, "dirty": False},
-                        "mmxwallet": {"commit": publisher.WALLET_REVISION, "dirty": False}, "sha256": {f"gigahost-{name}-{target}" + ('.exe' if directory == self.windows else ''): hashlib.sha256(name.encode()).hexdigest() for name in ('ghost', 'mmxwallet')}, "version": "0.1.0"}
+                        "mmxwallet": {"commit": publisher.WALLET_REVISION, "dirty": False}, "sha256": {f"ghostrack-{name}-{target}" + ('.exe' if directory == self.windows else ''): hashlib.sha256(name.encode()).hexdigest() for name in ('ghost', 'mmxwallet')}, "version": "0.1.0"}
             if directory == self.windows:
                 manifest["version"] = "0.1.0"
-                name = "gigahost_0.1.0_windows_x64.zip"
+                name = "ghostrack_0.1.0_windows_x64.zip"
                 with ZipFile(directory / name, "w") as archive:
-                    archive.writestr("gigahost_0.1.0_x64-setup.exe", b"installer")
+                    archive.writestr("ghostrack_0.1.0_x64-setup.exe", b"installer")
                     archive.writestr("build.json", json.dumps(manifest))
                     archive.writestr("install.txt", "Extract and install")
                 names = [name]
                 sums_name = "sha256sums-windows-x64"
             else:
-                names = ["gigahost_0.1.0_amd64.deb", "gigahost_0.1.0_amd64.appimage"]
+                names = ["ghostrack_0.1.0_amd64.deb", "ghostrack_0.1.0_amd64.appimage"]
                 for name in names:
                     (directory / name).write_bytes(name.encode())
                 sums_name = "sha256sums"
@@ -152,11 +152,11 @@ class Publishing(unittest.TestCase):
     def test_release_filenames_download_urls_and_windows_zip_contents_are_lowercase(self):
         uploads, latest, prefix = self.plan()
         packages = {
-            "windows_x64": ["gigahost_0.1.0_windows_x64.zip"],
-            "linux_x64": ["gigahost_0.1.0_amd64.deb", "gigahost_0.1.0_amd64.appimage"],
+            "windows_x64": ["ghostrack_0.1.0_windows_x64.zip"],
+            "linux_x64": ["ghostrack_0.1.0_amd64.deb", "ghostrack_0.1.0_amd64.appimage"],
         }
         if hasattr(self, "macos"):
-            packages["macos_universal"] = ["gigahost_0.1.0_macos_universal.dmg"]
+            packages["macos_universal"] = ["ghostrack_0.1.0_macos_universal.dmg"]
         names = {name for files in packages.values() for name in files}
         names.update(f"build-{platform.replace('_', '-')}.json" for platform in packages)
         self.assertEqual(set(uploads), names | {"sha256sums"})
@@ -168,19 +168,19 @@ class Publishing(unittest.TestCase):
         self.assertTrue(all(name == name.lower() for name in uploads))
         sums_names = {line.split("  ./")[1] for line in uploads["sha256sums"].decode().splitlines()}
         self.assertEqual(sums_names, names)
-        with ZipFile(self.windows / "gigahost_0.1.0_windows_x64.zip") as archive:
+        with ZipFile(self.windows / "ghostrack_0.1.0_windows_x64.zip") as archive:
             self.assertEqual(sorted(archive.namelist()), [
-                "build.json", "gigahost_0.1.0_x64-setup.exe", "install.txt",
+                "build.json", "ghostrack_0.1.0_x64-setup.exe", "install.txt",
             ])
 
     def test_package_checksum_allowlist_rejects_mixed_case_names(self):
         cases = [
-            (self.windows, "sha256sums-windows-x64", "gigahost_0.1.0_windows_x64.zip", "Gigahost_0.1.0_windows_x64.zip"),
-            (self.linux, "sha256sums", "gigahost_0.1.0_amd64.deb", "Gigahost_0.1.0_amd64.deb"),
-            (self.linux, "sha256sums", "gigahost_0.1.0_amd64.appimage", "gigahost_0.1.0_amd64.AppImage"),
+            (self.windows, "sha256sums-windows-x64", "ghostrack_0.1.0_windows_x64.zip", "GhostRack_0.1.0_windows_x64.zip"),
+            (self.linux, "sha256sums", "ghostrack_0.1.0_amd64.deb", "GhostRack_0.1.0_amd64.deb"),
+            (self.linux, "sha256sums", "ghostrack_0.1.0_amd64.appimage", "ghostrack_0.1.0_amd64.AppImage"),
         ]
         if hasattr(self, "macos"):
-            cases.append((self.macos, "sha256sums-macos-universal", self.mac_name, "Gigahost_0.1.0_macos_universal.dmg"))
+            cases.append((self.macos, "sha256sums-macos-universal", self.mac_name, "GhostRack_0.1.0_macos_universal.dmg"))
         for directory, sums_name, name, mixed_name in cases:
             with self.subTest(name=mixed_name):
                 sums = directory / sums_name
@@ -194,11 +194,11 @@ class Publishing(unittest.TestCase):
                     sums.write_text(original)
 
     def test_windows_zip_rejects_mixed_case_installer_and_metadata_names(self):
-        package = self.windows / "gigahost_0.1.0_windows_x64.zip"
+        package = self.windows / "ghostrack_0.1.0_windows_x64.zip"
         with ZipFile(package) as archive:
             contents = {name: archive.read(name) for name in archive.namelist()}
         cases = {
-            "gigahost_0.1.0_x64-setup.exe": "Gigahost_0.1.0_x64-setup.exe",
+            "ghostrack_0.1.0_x64-setup.exe": "GhostRack_0.1.0_x64-setup.exe",
             "build.json": "BUILD.json",
             "install.txt": "INSTALL.txt",
         }
@@ -219,7 +219,7 @@ class Publishing(unittest.TestCase):
             with self.subTest(failure=failure):
                 self.client = Storage()
                 self.client.objects["desktop/latest.json"] = b"previous"
-                key = f"{plan[2]}/gigahost_0.1.0_amd64.deb"
+                key = f"{plan[2]}/ghostrack_0.1.0_amd64.deb"
                 if failure == "upload":
                     self.client.fail_key = key
                 elif failure == "stored-bytes":
@@ -246,11 +246,11 @@ class Publishing(unittest.TestCase):
         self.assertEqual(self.client.writes, ["desktop/latest.json"])
 
     def test_incomplete_tampered_and_dirty_packages_are_rejected(self):
-        original = (self.windows / "gigahost_0.1.0_windows_x64.zip").read_bytes()
-        (self.windows / "gigahost_0.1.0_windows_x64.zip").write_bytes(b"tampered")
+        original = (self.windows / "ghostrack_0.1.0_windows_x64.zip").read_bytes()
+        (self.windows / "ghostrack_0.1.0_windows_x64.zip").write_bytes(b"tampered")
         with self.assertRaisesRegex(ValueError, "checksum mismatch"):
             self.plan()
-        (self.windows / "gigahost_0.1.0_windows_x64.zip").write_bytes(original)
+        (self.windows / "ghostrack_0.1.0_windows_x64.zip").write_bytes(original)
         manifest = json.loads((self.linux / "build.json").read_text())
         manifest["desktop"]["dirty"] = True
         (self.linux / "build.json").write_text(json.dumps(manifest))
@@ -265,7 +265,7 @@ class Publishing(unittest.TestCase):
         client = publisher.BunnyHTTPStorage("https://sg.storage.bunnycdn.com", "test-password")
         client.opener = fixture
         uploads, latest, prefix = plan
-        key = f"{prefix}/gigahost_0.1.0_amd64.deb"
+        key = f"{prefix}/ghostrack_0.1.0_amd64.deb"
         # Preflight must succeed, then the package PUT fails permanently.
         original_open = fixture.open
         def fail_put(request, timeout):
@@ -306,15 +306,15 @@ class MacPublishing(Publishing):
         super().setUp()
         self.macos = Path(self.root.name) / "macos"
         self.macos.mkdir()
-        self.mac_name = "gigahost_0.1.0_macos_universal.dmg"
+        self.mac_name = "ghostrack_0.1.0_macos_universal.dmg"
         self.mac_manifest = {
             "target": "universal-apple-darwin", "version": "0.1.0",
             "desktop": {"commit": self.revision, "dirty": False}, "ghost": {"commit": publisher.GHOST_REVISION, "dirty": False},
             "mmxwallet": {"commit": publisher.WALLET_REVISION, "dirty": False},
             "architectures": {name: ["arm64", "x86_64"] for name in
-                              ("gigahost-desktop", "gigahost-ghost", "gigahost-mmxwallet")},
+                              ("ghostrack-desktop", "ghostrack-ghost", "ghostrack-mmxwallet")},
             "sha256": {name: "b" * 64 for name in
-                       ("gigahost-desktop", "gigahost-ghost", "gigahost-mmxwallet")},
+                       ("ghostrack-desktop", "ghostrack-ghost", "ghostrack-mmxwallet")},
             "minimum_macos": "11.0", "signing": "adhoc", "notarized": False,
         }
         (self.macos / self.mac_name).write_bytes(b"DMG verified by native macOS CI")
@@ -356,9 +356,9 @@ class MacPublishing(Publishing):
             ("ghost", {"commit": "c" * 40, "dirty": False}, "clean pinned"),
             ("mmxwallet", {"commit": publisher.WALLET_REVISION, "dirty": True}, "clean pinned"),
             ("mmxwallet", {"commit": "c" * 40, "dirty": False}, "clean pinned"),
-            ("architectures", {"gigahost-desktop": ["arm64"]}, "architecture metadata"),
+            ("architectures", {"ghostrack-desktop": ["arm64"]}, "architecture metadata"),
             ("architectures", {name: ["arm64"] for name in self.mac_manifest["architectures"]}, "architecture metadata"),
-            ("sha256", {"gigahost-desktop": "invalid"}, "component hashes"),
+            ("sha256", {"ghostrack-desktop": "invalid"}, "component hashes"),
             ("minimum_macos", "12.0", "compatibility/signing"),
             ("signing", "unsigned", "compatibility/signing"),
             ("notarized", True, "compatibility/signing"),

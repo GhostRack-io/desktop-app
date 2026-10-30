@@ -14,17 +14,17 @@ export PATCHELF
 PATCHELF=$(command -v patchelf)
 export NO_STRIP=1
 for component in ghost mmxwallet; do
-    "$PATCHELF" --set-rpath '$ORIGIN/../lib' "$desktop/src-tauri/binaries/gigahost-$component-$target"
+    "$PATCHELF" --set-rpath '$ORIGIN/../lib' "$desktop/src-tauri/binaries/ghostrack-$component-$target"
 done
-python3 "$desktop/scripts/check-ghost.py" "$desktop/src-tauri/binaries/gigahost-ghost-$target"
+python3 "$desktop/scripts/check-ghost.py" "$desktop/src-tauri/binaries/ghostrack-ghost-$target"
 python3 "$desktop/scripts/build-support.py" manifest --target "$target" --build-root "$build_root"
 cd -- "$desktop"
 npm ci
 npm run icons
 CARGO_TARGET_DIR="$build_root/desktop" npm run tauri build -- --bundles deb,appimage -- --locked
 python3 "$desktop/scripts/verify-linux.py" \
-    "$build_root/desktop/release/bundle/deb/Gigahost_${version}_amd64.deb" \
-    "$build_root/desktop/release/bundle/appimage/Gigahost_${version}_amd64.AppImage" \
+    "$build_root/desktop/release/bundle/deb/GhostRack_${version}_amd64.deb" \
+    "$build_root/desktop/release/bundle/appimage/GhostRack_${version}_amd64.AppImage" \
     "$desktop/src-tauri/binaries/build-manifest.json"
 mkdir -p "$desktop/artifacts/packages"
 python3 - "$build_root/desktop/release/bundle" "$desktop" <<'PY'

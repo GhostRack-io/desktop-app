@@ -17,7 +17,7 @@ def digest(path):
 def verify_tree(tree, manifest, root=ROOT):
     target = manifest['target']
     for component in ('ghost', 'mmxwallet'):
-        name = 'gigahost-' + component
+        name = 'ghostrack-' + component
         binary = tree / 'usr/bin' / name
         if not binary.is_file() or binary.is_symlink() or digest(binary) != manifest['sha256'][name + '-' + target]:
             raise ValueError('Packaged sidecar hash differs: ' + name)

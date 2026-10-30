@@ -1,5 +1,5 @@
 //! Headless integration-test harness for the exact native controller. Never bundled.
-use gigahost_desktop::{Controller, Request, process::Runner};
+use ghostrack_desktop::{Controller, Request, process::Runner};
 use std::path::PathBuf;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 #[tokio::main]
@@ -18,7 +18,7 @@ async fn main() {
     while let Some(line) = lines.next_line().await.unwrap() {
         let result = match serde_json::from_str::<Request>(&line) {
             Ok(request) => controller.dispatch(request).await,
-            Err(_) => Err(gigahost_desktop::Failure::new(
+            Err(_) => Err(ghostrack_desktop::Failure::new(
                 "invalid_request",
                 "Invalid test request.",
             )),

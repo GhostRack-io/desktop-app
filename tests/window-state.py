@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Resize/close/reopen the packaged app on a disposable Linux X11 display.
 
-python3 tests/window-state.py artifacts/packages/gigahost_0.1.0_amd64.appimage
+python3 tests/window-state.py artifacts/packages/ghostrack_0.1.0_amd64.appimage
 """
 import ctypes as c
 import json
@@ -45,7 +45,7 @@ x.XSendEvent.argtypes = [Display, Window, c.c_int, c.c_long, c.POINTER(Event)]
 def find_window(display, window, depth=0):
     name = c.c_char_p()
     x.XFetchName(display, window, c.byref(name))
-    found = name.value == b'Gigahost'
+    found = name.value == b'GhostRack'
     if name:
         x.XFree(c.cast(name, c.c_void_p))
     # GTK also creates a tiny leader window with the application's title.
@@ -98,12 +98,12 @@ def main():
     assert display, 'Run with an isolated X11 DISPLAY (for example, Xvfb)'
     process = None
     try:
-        with tempfile.TemporaryDirectory(prefix='gigahost-window-state-') as directory:
+        with tempfile.TemporaryDirectory(prefix='ghostrack-window-state-') as directory:
             home = Path(directory)
             env = dict(os.environ, HOME=directory, XDG_CONFIG_HOME=str(home/'config'), XDG_STATE_HOME=str(home/'state'), XDG_DATA_HOME=str(home/'data'), MMX_HOME=str(home/'wallets'), APPIMAGE_EXTRACT_AND_RUN='1', WEBKIT_DISABLE_DMABUF_RENDERER='1')
             for key in ['GHOST_SEED_FILE', 'GHOST_RECOVERY_SEED_FILE']:
                 env.pop(key, None)
-            cache = home/'config/cloud.gigahost.desktop/.window-state.json'
+            cache = home/'config/io.ghostrack.desktop/.window-state.json'
             steps = [((1440, 1000), (1210, 840)), ((1210, 840), (1080, 720)), ((1080, 720), None)]
             log_path = home/'app.log'
             try:

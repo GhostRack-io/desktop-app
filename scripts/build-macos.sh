@@ -14,15 +14,15 @@ rustup target add aarch64-apple-darwin x86_64-apple-darwin
 for arch in aarch64 x86_64; do
     python3 "$desktop/scripts/build-support.py" components --target "$arch-apple-darwin" --build-root "$build_root"
 done
-lipo -create "$desktop/src-tauri/binaries/gigahost-ghost-aarch64-apple-darwin" "$desktop/src-tauri/binaries/gigahost-ghost-x86_64-apple-darwin" -output "$desktop/src-tauri/binaries/gigahost-ghost-$target"
-lipo -create "$desktop/src-tauri/binaries/gigahost-mmxwallet-aarch64-apple-darwin" "$desktop/src-tauri/binaries/gigahost-mmxwallet-x86_64-apple-darwin" -output "$desktop/src-tauri/binaries/gigahost-mmxwallet-$target"
-chmod 0755 "$desktop/src-tauri/binaries/gigahost-ghost-$target" "$desktop/src-tauri/binaries/gigahost-mmxwallet-$target"
+lipo -create "$desktop/src-tauri/binaries/ghostrack-ghost-aarch64-apple-darwin" "$desktop/src-tauri/binaries/ghostrack-ghost-x86_64-apple-darwin" -output "$desktop/src-tauri/binaries/ghostrack-ghost-$target"
+lipo -create "$desktop/src-tauri/binaries/ghostrack-mmxwallet-aarch64-apple-darwin" "$desktop/src-tauri/binaries/ghostrack-mmxwallet-x86_64-apple-darwin" -output "$desktop/src-tauri/binaries/ghostrack-mmxwallet-$target"
+chmod 0755 "$desktop/src-tauri/binaries/ghostrack-ghost-$target" "$desktop/src-tauri/binaries/ghostrack-mmxwallet-$target"
 # lipo changes signed Mach-O bytes. Re-sign universal sidecars before use;
 # Tauri signs them again inside-out when creating the final app bundle.
 for component in ghost mmxwallet; do
-    codesign --force --sign - --timestamp=none "$desktop/src-tauri/binaries/gigahost-$component-$target"
+    codesign --force --sign - --timestamp=none "$desktop/src-tauri/binaries/ghostrack-$component-$target"
 done
-python3 "$desktop/scripts/check-ghost.py" "$desktop/src-tauri/binaries/gigahost-ghost-$target"
+python3 "$desktop/scripts/check-ghost.py" "$desktop/src-tauri/binaries/ghostrack-ghost-$target"
 cd -- "$desktop"
 npm ci
 npm run icons
@@ -39,7 +39,7 @@ if package['version'] != config['version']:
 spec = importlib.util.spec_from_file_location('macos_bundle', desktop/'scripts/macos-bundle.py')
 inspector = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(inspector)
-components = inspector.inspect(bundle/'macos/Gigahost.app', config['version'])
+components = inspector.inspect(bundle/'macos/GhostRack.app', config['version'])
 support_spec = importlib.util.spec_from_file_location('build_support', desktop/'scripts/build-support.py')
 support = importlib.util.module_from_spec(support_spec)
 support_spec.loader.exec_module(support)
@@ -52,7 +52,7 @@ if not source.is_file():
     raise ValueError('Expected the configured product/version universal DMG')
 subprocess.run(['hdiutil', 'verify', str(source)], check=True)
 out = desktop/'artifacts/packages'
-name = f"gigahost_{config['version']}_macos_universal.dmg".lower()
+name = f"ghostrack_{config['version']}_macos_universal.dmg".lower()
 with tempfile.TemporaryDirectory(prefix='.package-macos-', dir=out) as stage_dir:
     stage = pathlib.Path(stage_dir)
     shutil.copyfile(source, stage/name)

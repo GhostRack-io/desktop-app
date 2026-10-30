@@ -1,5 +1,5 @@
 #![cfg(target_os = "linux")]
-use gigahost_desktop::linux::{APP_ID, DESKTOP_FILE, install_launcher};
+use ghostrack_desktop::linux::{APP_ID, DESKTOP_FILE, install_launcher};
 use std::{fs, path::Path};
 
 #[test]
@@ -21,23 +21,23 @@ fn window_identity_and_package_launcher_match() {
 #[test]
 fn portable_launcher_survives_unmount_and_updates_after_move() {
     let home = tempfile::tempdir().unwrap();
-    let first = Path::new("/home/new user/Downloads/Gigahost.AppImage");
+    let first = Path::new("/home/new user/Downloads/GhostRack.AppImage");
     install_launcher(home.path(), &[], first, true, b"icon").unwrap();
     let launcher = home.path().join("applications").join(DESKTOP_FILE);
     let entry = fs::read_to_string(&launcher).unwrap();
-    assert!(entry.contains("Exec=\"/home/new user/Downloads/Gigahost.AppImage\" %u"));
+    assert!(entry.contains("Exec=\"/home/new user/Downloads/GhostRack.AppImage\" %u"));
     assert!(!entry.contains("NoDisplay=true"));
     let icon = entry
         .lines()
         .find_map(|line| line.strip_prefix("Icon="))
         .unwrap();
     assert_eq!(fs::read(icon).unwrap(), b"icon");
-    let moved = Path::new("/home/new user/Applications/Gigahost.AppImage");
+    let moved = Path::new("/home/new user/Applications/GhostRack.AppImage");
     install_launcher(home.path(), &[], moved, true, b"new icon").unwrap();
     assert!(
         fs::read_to_string(launcher)
             .unwrap()
-            .contains("/Applications/Gigahost.AppImage")
+            .contains("/Applications/GhostRack.AppImage")
     );
     assert_eq!(fs::read(icon).unwrap(), b"new icon");
 }
@@ -55,7 +55,7 @@ fn installed_deb_uses_system_launcher_without_user_duplicate() {
     install_launcher(
         home.path(),
         &[system.path().into()],
-        Path::new("/usr/bin/gigahost-desktop"),
+        Path::new("/usr/bin/ghostrack-desktop"),
         false,
         b"icon",
     )
@@ -79,7 +79,7 @@ fn appimage_to_deb_removes_only_generated_user_override() {
         install_launcher(
             home.path(),
             &dirs,
-            Path::new("/tmp/Gigahost.AppImage"),
+            Path::new("/tmp/GhostRack.AppImage"),
             true,
             b"icon",
         )
@@ -93,7 +93,7 @@ fn appimage_to_deb_removes_only_generated_user_override() {
         install_launcher(
             home.path(),
             &dirs,
-            Path::new("/usr/bin/gigahost-desktop"),
+            Path::new("/usr/bin/ghostrack-desktop"),
             false,
             b"icon",
         )
@@ -102,13 +102,13 @@ fn appimage_to_deb_removes_only_generated_user_override() {
     }
     fs::write(
         &launcher,
-        "[Desktop Entry]\nName=My custom Gigahost\nExec=/custom/location\n",
+        "[Desktop Entry]\nName=My custom GhostRack\nExec=/custom/location\n",
     )
     .unwrap();
     install_launcher(
         home.path(),
         &dirs,
-        Path::new("/usr/bin/gigahost-desktop"),
+        Path::new("/usr/bin/ghostrack-desktop"),
         false,
         b"icon",
     )
@@ -116,7 +116,7 @@ fn appimage_to_deb_removes_only_generated_user_override() {
     assert!(
         fs::read_to_string(launcher)
             .unwrap()
-            .contains("My custom Gigahost")
+            .contains("My custom GhostRack")
     );
 }
 
@@ -127,7 +127,7 @@ fn deb_preserves_unmarked_override_with_only_custom_exec() {
     install_launcher(
         home.path(),
         &[],
-        Path::new("/tmp/Gigahost.AppImage"),
+        Path::new("/tmp/GhostRack.AppImage"),
         true,
         b"icon",
     )
@@ -137,8 +137,8 @@ fn deb_preserves_unmarked_override_with_only_custom_exec() {
         .unwrap()
         .replace("X-Gigahost-Managed=true\n", "")
         .replace(
-            "Exec=\"/tmp/Gigahost.AppImage\" %u",
-            "Exec=/my/custom/gigahost %u",
+            "Exec=\"/tmp/GhostRack.AppImage\" %u",
+            "Exec=/my/custom/ghostrack %u",
         );
     fs::write(&launcher, &entry).unwrap();
     fs::create_dir(system.path().join("applications")).unwrap();
@@ -150,7 +150,7 @@ fn deb_preserves_unmarked_override_with_only_custom_exec() {
     install_launcher(
         home.path(),
         &[system.path().into()],
-        Path::new("/usr/bin/gigahost-desktop"),
+        Path::new("/usr/bin/ghostrack-desktop"),
         false,
         b"icon",
     )

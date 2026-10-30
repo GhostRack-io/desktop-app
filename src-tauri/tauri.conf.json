@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Gigahost",
+  "productName": "GhostRack",
   "version": "0.1.6",
-  "identifier": "cloud.gigahost.desktop",
+  "identifier": "io.ghostrack.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Gigahost",
+        "title": "GhostRack",
         "width": 1440,
         "height": 1000,
         "minWidth": 760,
@@ -33,8 +33,8 @@
       "appimage"
     ],
     "category": "Finance",
-    "shortDescription": "Your Gigahost account and MMX wallet",
-    "longDescription": "Create and manage Gigahost account keys, log in, authorize hosted restores, top up service credit, and send or receive MMX.",
+    "shortDescription": "Your GhostRack account and MMX wallet",
+    "longDescription": "Create and manage GhostRack account keys, log in, authorize hosted restores, top up service credit, and send or receive MMX.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -42,8 +42,8 @@
       "icons/icon.png"
     ],
     "externalBin": [
-      "binaries/gigahost-ghost",
-      "binaries/gigahost-mmxwallet"
+      "binaries/ghostrack-ghost",
+      "binaries/ghostrack-mmxwallet"
     ],
     "linux": {
       "deb": {
@@ -52,15 +52,15 @@
           "xdg-utils",
           "desktop-file-utils"
         ],
-        "desktopTemplate": "gigahost.desktop.hbs",
+        "desktopTemplate": "ghostrack.desktop.hbs",
         "files": {
-          "/usr/share/applications/cloud.gigahost.desktop.desktop": "cloud.gigahost.desktop.desktop"
+          "/usr/share/applications/io.ghostrack.desktop.desktop": "io.ghostrack.desktop.desktop"
         }
       },
       "appimage": {
         "bundleMediaFramework": false,
         "files": {
-          "/usr/share/applications/cloud.gigahost.desktop.desktop": "cloud.gigahost.desktop.desktop"
+          "/usr/share/applications/io.ghostrack.desktop.desktop": "io.ghostrack.desktop.desktop"
         }
       }
     },
@@ -74,7 +74,7 @@
     "deep-link": {
       "desktop": {
         "schemes": [
-          "gigahost"
+          "ghostrack"
         ]
       }
     }

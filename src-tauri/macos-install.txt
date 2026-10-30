@@ -1,7 +1,7 @@
-Gigahost macOS preview (Apple Silicon and Intel, macOS 11 or later)
+GhostRack macOS preview (Apple Silicon and Intel, macOS 11 or later)
 
-Open the DMG, then drag Gigahost to Applications. Eject the DMG and open
-Gigahost from Applications. Ghost and the native Rust mmxwallet are included.
+Open the DMG, then drag GhostRack to Applications. Eject the DMG and open
+GhostRack from Applications. Ghost and the native Rust mmxwallet are included.
 
 This preview is ad-hoc signed, without an Apple Developer ID or notarization.
 macOS may block the first launch. If you trust the download source, try opening

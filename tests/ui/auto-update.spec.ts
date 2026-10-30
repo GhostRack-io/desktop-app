@@ -103,7 +103,7 @@ test('activation completes automatically after deposit confirmations without ano
   });
   await page.clock.fastForward(10_000);
   await expect(page.getByRole('heading',{name:'gh-automatically-active',exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Open Gigahost',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Open GhostRack',exact:true})).toBeEnabled();
   expect(await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'activate_account').length)).toBe(1);
   expect(await page.evaluate(()=>(window as any).calls.some((r:any)=>['prepare_send','broadcast'].includes(r.action)))).toBe(false);
 });

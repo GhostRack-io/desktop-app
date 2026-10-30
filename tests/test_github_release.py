@@ -199,7 +199,7 @@ class Preparation(unittest.TestCase):
 
     def test_linux_only_and_all_platforms_downloads_are_filtered(self):
         paths, _ = self.stage(linux=self.fixture.linux)
-        self.assertEqual(set(paths), {'gigahost_0.1.0_amd64.deb', 'gigahost_0.1.0_amd64.appimage', 'build-linux-x64.json', 'sha256sums'})
+        self.assertEqual(set(paths), {'ghostrack_0.1.0_amd64.deb', 'ghostrack_0.1.0_amd64.appimage', 'build-linux-x64.json', 'sha256sums'})
         _, latest, _ = release.desktop.prepare(None, self.fixture.linux, '0.1.0', self.fixture.revision, 'desktop', 'https://example.com')
         self.assertEqual(set(latest['downloads']), {'linux_x64'})
         paths, _ = self.stage(windows=self.fixture.windows, linux=self.fixture.linux)
@@ -225,7 +225,7 @@ class Preparation(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.stage(linux=self.fixture.linux)
                 path.write_bytes(original)
-            package = self.fixture.linux / 'gigahost_0.1.0_amd64.deb'
+            package = self.fixture.linux / 'ghostrack_0.1.0_amd64.deb'
             original = package.read_bytes()
             package.write_bytes(b'corrupt')
             with self.assertRaisesRegex(ValueError, 'checksum'):
@@ -248,7 +248,7 @@ class Preparation(unittest.TestCase):
                 '--revision', self.fixture.revision, '--dry-run']
         with patch.object(release.sys, 'argv', argv), patch.object(release.desktop._support, 'version', return_value='0.1.0'), patch.dict(os.environ, {}, clear=True), patch.object(release, 'GitHub', side_effect=AssertionError('network')), patch('sys.stdout', new_callable=io.StringIO) as output:
             release.main()
-        self.assertIn('gigahost_0.1.0_amd64.deb', output.getvalue())
+        self.assertIn('ghostrack_0.1.0_amd64.deb', output.getvalue())
 
 
 class Transport(unittest.TestCase):

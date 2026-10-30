@@ -13,7 +13,7 @@ import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-REPOSITORIES = {'ghost': 'https://github.com/GhostRack-io/ghost-cli.git',
+REPOSITORIES = {'ghost': 'https://github.com/ghostrack-io/ghost-cli.git',
                 'mmxwallet': 'https://github.com/mmx-network/mmx-rust-node.git'}
 
 
@@ -100,7 +100,7 @@ def version(root=ROOT):
     if (config['version'] != value or npm_lock['version'] != value or
             npm_lock['packages']['']['version'] != value or
             not re.search(r'^version\s*=\s*"' + re.escape(value) + '"$', cargo, re.M) or
-            'name = "gigahost-desktop"\nversion = "' + value + '"' not in lock):
+            'name = "ghostrack-desktop"\nversion = "' + value + '"' not in lock):
         raise ValueError('Desktop versions differ')
     return value
 
@@ -127,7 +127,7 @@ def desktop_identity():
     bundle = source_bundle()
     if bundle:
         return {key: bundle[1]['desktop'][key] for key in ('commit', 'dirty')}
-    return identity(ROOT, 'https://github.com/GhostRack-io/desktop-app.git')
+    return identity(ROOT, 'https://github.com/ghostrack-io/desktop-app.git')
 
 
 def package_path(snapshot, package):
@@ -177,7 +177,7 @@ def manifest(target, build_root):
     value['sha256'] = {}
     for name in REPOSITORIES:
         value[name] = {'commit': config[name]['revision'], 'dirty': False}
-        filename = 'gigahost-' + name + '-' + target + ('.exe' if 'windows' in target else '')
+        filename = 'ghostrack-' + name + '-' + target + ('.exe' if 'windows' in target else '')
         value['sha256'][filename] = hashlib.sha256((ROOT / 'src-tauri/binaries' / filename).read_bytes()).hexdigest()
     (ROOT / 'src-tauri/binaries/build-manifest.json').write_text(json.dumps(value, indent=2) + '\n')
     return value
@@ -204,7 +204,7 @@ def main():
             for name in REPOSITORIES:
                 binary = component(name, args.target, args.build_root.resolve())
                 suffix = '.exe' if 'windows' in args.target else ''
-                shutil.copy2(binary, out / ('gigahost-' + name + '-' + args.target + suffix))
+                shutil.copy2(binary, out / ('ghostrack-' + name + '-' + args.target + suffix))
 
         else:
             manifest(args.target, args.build_root)

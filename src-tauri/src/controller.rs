@@ -400,9 +400,13 @@ pub fn approval_id(reference: &str, website: &str) -> Result<String> {
     if let Ok(id) = Uuid::parse_str(reference) {
         return Ok(id.to_string());
     }
-    let url = Url::parse(reference)
-        .map_err(|_| Failure::new("invalid_approval", "Paste the approval link from Gigahost."))?;
-    let id = if url.scheme() == "gigahost"
+    let url = Url::parse(reference).map_err(|_| {
+        Failure::new(
+            "invalid_approval",
+            "Paste the approval link from GhostRack.",
+        )
+    })?;
+    let id = if url.scheme() == "ghostrack"
         && url.host_str() == Some("approve")
         && url.path().is_empty()
         && url.fragment().is_none()
@@ -427,7 +431,7 @@ pub fn approval_id(reference: &str, website: &str) -> Result<String> {
         {
             return Err(Failure::new(
                 "invalid_approval",
-                "This approval link is not from your configured Gigahost website.",
+                "This approval link is not from your configured GhostRack website.",
             ));
         }
         url.path()
@@ -1035,7 +1039,7 @@ impl Controller {
         if balance.is_null() {
             return Err(Failure::new(
                 "provider_missing",
-                "There are no provider earnings yet. Rent out a server on Gigahost to start earning.",
+                "There are no provider earnings yet. Rent out a server on GhostRack to start earning.",
             ));
         }
         Ok(balance)
@@ -1190,7 +1194,7 @@ impl Controller {
         {
             return Err(Failure::new(
                 "payout_retry_expired",
-                "This saved request is too old to retry safely. Check payout history and contact Gigahost support before requesting the amount again.",
+                "This saved request is too old to retry safely. Check payout history and contact GhostRack support before requesting the amount again.",
             ));
         }
         let args = if op.kind == "payout_address" {

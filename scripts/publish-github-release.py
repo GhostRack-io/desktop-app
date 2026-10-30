@@ -44,12 +44,12 @@ def main():
         parser.add_argument('--' + platform + '-dir', type=Path)
     parser.add_argument('--version', required=True)
     parser.add_argument('--revision', required=True)
-    parser.add_argument('--repository', default='GhostRack-io/desktop-app')
+    parser.add_argument('--repository', default='ghostrack-io/desktop-app')
     parser.add_argument('--notes-file', type=Path)
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
     prefix = os.environ.get('DESKTOP_CDN_PREFIX') or os.environ.get('DESKTOP_S3_PREFIX') or 'desktop'
-    public_base = os.environ.get('CDN_PUBLIC_BASE') or os.environ.get('DESKTOP_PUBLIC_BASE') or 'https://apps.gigahost.cloud'
+    public_base = os.environ.get('CDN_PUBLIC_BASE') or os.environ.get('DESKTOP_PUBLIC_BASE') or 'https://apps.ghostrack.io'
     transport = os.environ.get('DESKTOP_UPLOAD_TRANSPORT') or 'bunny-http'
     endpoint = os.environ.get('CDN_STORAGE_ENDPOINT') or os.environ.get('DESKTOP_STORAGE_ENDPOINT') or None
     bucket = os.environ.get('CDN_STORAGE_ZONE') or os.environ.get('DESKTOP_S3_BUCKET') or 'gigahost-apps'

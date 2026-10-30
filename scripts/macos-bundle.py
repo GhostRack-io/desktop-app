@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 
-COMPONENTS = ("gigahost-desktop", "gigahost-ghost", "gigahost-mmxwallet")
+COMPONENTS = ("ghostrack-desktop", "ghostrack-ghost", "ghostrack-mmxwallet")
 ARCHITECTURES = ["arm64", "x86_64"]
 MINIMUM_MACOS = "11.0"
 
@@ -48,8 +48,8 @@ def check_deployment_minimum(commands, identity):
 def inspect(app, version):
     app = Path(app)
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
-    for key, value in {"CFBundleIdentifier": "cloud.gigahost.desktop",
-                       "CFBundleExecutable": "gigahost-desktop",
+    for key, value in {"CFBundleIdentifier": "io.ghostrack.desktop",
+                       "CFBundleExecutable": "ghostrack-desktop",
                        "CFBundleShortVersionString": version,
                        "CFBundleVersion": version,
                        "LSMinimumSystemVersion": MINIMUM_MACOS}.items():
@@ -57,8 +57,8 @@ def inspect(app, version):
             raise ValueError(f"Incorrect macOS app metadata: {key}")
     schemes = {scheme for entry in info.get("CFBundleURLTypes", [])
                for scheme in entry.get("CFBundleURLSchemes", [])}
-    if schemes != {"gigahost"}:
-        raise ValueError("Missing Gigahost approval-link scheme")
+    if schemes != {"ghostrack"}:
+        raise ValueError("Missing GhostRack approval-link scheme")
     icon = info.get("CFBundleIconFile", "")
     if not icon or not (app / "Contents/Resources" / icon).is_file():
         raise ValueError("Missing macOS app icon")

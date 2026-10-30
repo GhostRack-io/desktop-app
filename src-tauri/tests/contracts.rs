@@ -1,9 +1,9 @@
-use gigahost_desktop::controller::{
+use ghostrack_desktop::controller::{
     approval_id, claim_link, github_link_args, github_signup_args, github_status_args,
     github_unlink_args, restore_charge, validate_url,
 };
-use gigahost_desktop::payouts::{amount_microusd, valid_address};
-use gigahost_desktop::store::{Settings, Store};
+use ghostrack_desktop::payouts::{amount_microusd, valid_address};
+use ghostrack_desktop::store::{Settings, Store};
 #[test]
 fn fresh_settings_use_dark_and_saved_theme_choices_survive_reopening() {
     let home = tempfile::tempdir().unwrap();
@@ -75,28 +75,28 @@ fn links_cannot_change_backend_or_authorize_commands() {
     let id = "d991d038-bbfc-4a9b-82dd-0d1cf33281b7";
     assert_eq!(
         approval_id(
-            &format!("gigahost://approve?intent={id}"),
-            "https://gigahost.cloud"
+            &format!("ghostrack://approve?intent={id}"),
+            "https://ghostrack.io"
         )
         .unwrap(),
         id
     );
     assert_eq!(
         approval_id(
-            &format!("https://gigahost.cloud/approvals/{id}"),
-            "https://gigahost.cloud"
+            &format!("https://ghostrack.io/approvals/{id}"),
+            "https://ghostrack.io"
         )
         .unwrap(),
         id
     );
     for link in [
-        format!("gigahost://approve?intent={id}&api=https://evil.example"),
+        format!("ghostrack://approve?intent={id}&api=https://evil.example"),
         format!("https://evil.example/approvals/{id}"),
-        format!("gigahost://approve/path?intent={id}"),
-        format!("gigahost://approve?intent={id}&yes=true"),
+        format!("ghostrack://approve/path?intent={id}"),
+        format!("ghostrack://approve?intent={id}&yes=true"),
     ] {
         assert!(
-            approval_id(&link, "https://gigahost.cloud").is_err(),
+            approval_id(&link, "https://ghostrack.io").is_err(),
             "{link}"
         );
     }
@@ -104,7 +104,7 @@ fn links_cannot_change_backend_or_authorize_commands() {
 #[test]
 fn remote_connections_require_https_without_embedded_credentials() {
     for good in [
-        "https://api.gigahost.cloud",
+        "https://api.ghostrack.io",
         "https://rpc.mmx.network",
         "http://127.0.0.1:18080",
     ] {
@@ -113,8 +113,8 @@ fn remote_connections_require_https_without_embedded_credentials() {
     for bad in [
         "http://remote.example",
         "file:///tmp/secret",
-        "https://user:secret@api.gigahost.cloud",
-        "https://api.gigahost.cloud?override=yes",
+        "https://user:secret@api.ghostrack.io",
+        "https://api.ghostrack.io?override=yes",
     ] {
         assert!(validate_url(bad).is_err());
     }
@@ -140,12 +140,12 @@ fn github_commands_are_built_by_the_app_alone() {
 }
 #[test]
 fn a_github_link_must_be_on_the_configured_website() {
-    let website = "https://gigahost.cloud";
-    assert!(claim_link("https://gigahost.cloud/trial/start?claim=abc", website).is_ok());
+    let website = "https://ghostrack.io";
+    assert!(claim_link("https://ghostrack.io/trial/start?claim=abc", website).is_ok());
     for link in [
         "https://evil.example/trial/start?claim=abc",
-        "http://gigahost.cloud/trial/start?claim=abc",
-        "https://user:pass@gigahost.cloud/trial/start",
+        "http://ghostrack.io/trial/start?claim=abc",
+        "https://user:pass@ghostrack.io/trial/start",
         "not a url",
     ] {
         assert!(claim_link(link, website).is_err(), "{link}");

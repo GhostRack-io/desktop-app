@@ -84,8 +84,8 @@ jobs:
 
       - name: Native controller checks
         env:
-          GIGAHOST_TEST_GHOST: ${{ github.workspace }}/src-tauri/binaries/gigahost-ghost-x86_64-pc-windows-msvc.exe
-          GIGAHOST_TEST_WALLET: ${{ github.workspace }}/src-tauri/binaries/gigahost-mmxwallet-x86_64-pc-windows-msvc.exe
+          GHOSTRACK_TEST_GHOST: ${{ github.workspace }}/src-tauri/binaries/ghostrack-ghost-x86_64-pc-windows-msvc.exe
+          GHOSTRACK_TEST_WALLET: ${{ github.workspace }}/src-tauri/binaries/ghostrack-mmxwallet-x86_64-pc-windows-msvc.exe
         run: |
           cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
           if ($LASTEXITCODE -ne 0) { throw 'Desktop formatting failed.' }
@@ -100,9 +100,9 @@ jobs:
       - name: Upload ZIP and provenance
         uses: actions/upload-artifact@v4
         with:
-          name: gigahost-windows-x64
+          name: ghostrack-windows-x64
           path: |
-            artifacts/packages/gigahost_*_windows_x64.zip
+            artifacts/packages/ghostrack_*_windows_x64.zip
             artifacts/packages/sha256sums-windows-x64
             artifacts/packages/build.json
           if-no-files-found: error
@@ -136,19 +136,19 @@ jobs:
       - name: Frontend, controller and publisher checks
         run: |
           set -euo pipefail
-          docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/src" --env HOME=/tmp --env RUSTUP_TOOLCHAIN=1.97.0 --env CARGO_HOME=/src/artifacts/cargo --env CARGO_TARGET_DIR=/src/artifacts/build/desktop gigahost-desktop-linux:0.1.0 bash -c 'npm ci && npm test && cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features --features test-driver'
+          docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/src" --env HOME=/tmp --env RUSTUP_TOOLCHAIN=1.97.0 --env CARGO_HOME=/src/artifacts/cargo --env CARGO_TARGET_DIR=/src/artifacts/build/desktop ghostrack-desktop-linux:0.1.0 bash -c 'npm ci && npm test && cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features --features test-driver'
           python3 -m unittest discover -s tests -p 'test_*.py'
 
       - name: Launch the packaged Linux app
         run: |
-          docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/src" --volume /etc/passwd:/etc/passwd:ro --volume /etc/group:/etc/group:ro --env HOME=/tmp --env APPIMAGE_EXTRACT_AND_RUN=1 gigahost-desktop-linux:0.1.0 bash -c 'package=$(find artifacts/packages -maxdepth 1 -name "gigahost_*_amd64.appimage" -print -quit); dbus-run-session -- xvfb-run -a python3 tests/window-state.py "$package"'
+          docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/src" --volume /etc/passwd:/etc/passwd:ro --volume /etc/group:/etc/group:ro --env HOME=/tmp --env APPIMAGE_EXTRACT_AND_RUN=1 ghostrack-desktop-linux:0.1.0 bash -c 'package=$(find artifacts/packages -maxdepth 1 -name "ghostrack_*_amd64.appimage" -print -quit); dbus-run-session -- xvfb-run -a python3 tests/window-state.py "$package"'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: gigahost-linux-x64
+          name: ghostrack-linux-x64
           path: |
-            artifacts/packages/gigahost_*_amd64.deb
-            artifacts/packages/gigahost_*_amd64.appimage
+            artifacts/packages/ghostrack_*_amd64.deb
+            artifacts/packages/ghostrack_*_amd64.appimage
             artifacts/packages/sha256sums
             artifacts/packages/build.json
           if-no-files-found: error
@@ -218,8 +218,8 @@ jobs:
 
       - name: Native Apple Silicon controller checks
         env:
-          GIGAHOST_TEST_GHOST: ${{ github.workspace }}/src-tauri/binaries/gigahost-ghost-universal-apple-darwin
-          GIGAHOST_TEST_WALLET: ${{ github.workspace }}/src-tauri/binaries/gigahost-mmxwallet-universal-apple-darwin
+          GHOSTRACK_TEST_GHOST: ${{ github.workspace }}/src-tauri/binaries/ghostrack-ghost-universal-apple-darwin
+          GHOSTRACK_TEST_WALLET: ${{ github.workspace }}/src-tauri/binaries/ghostrack-mmxwallet-universal-apple-darwin
         run: |
           set -euo pipefail
           cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
@@ -232,9 +232,9 @@ jobs:
       - name: Upload universal DMG and provenance
         uses: actions/upload-artifact@v4
         with:
-          name: gigahost-macos-universal
+          name: ghostrack-macos-universal
           path: |
-            artifacts/packages/gigahost_*_macos_universal.dmg
+            artifacts/packages/ghostrack_*_macos_universal.dmg
             artifacts/packages/sha256sums-macos-universal
             artifacts/packages/build.json
           if-no-files-found: error
@@ -252,7 +252,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: gigahost-macos-universal
+          name: ghostrack-macos-universal
           path: artifacts/downloads/macos
 
       - name: Install and launch the same DMG natively on Intel
@@ -275,17 +275,17 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: gigahost-windows-x64
+          name: ghostrack-windows-x64
           path: artifacts/downloads/windows
 
       - uses: actions/download-artifact@v4
         with:
-          name: gigahost-linux-x64
+          name: ghostrack-linux-x64
           path: artifacts/downloads/linux
 
       - uses: actions/download-artifact@v4
         with:
-          name: gigahost-macos-universal
+          name: ghostrack-macos-universal
           path: artifacts/downloads/macos
 
       - name: Install publisher dependencies

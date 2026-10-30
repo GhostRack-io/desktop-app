@@ -5,7 +5,7 @@ import { resolve, extname, sep } from 'node:path';
 export const address = 'mmx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdgytev';
 const ok = (data: unknown) => ({ data, error: null });
 export const fixture = {
-  settings: { wallet_file:'/tmp/disposable-wallet.dat',ghost_seed_file:'/tmp/disposable-account.seed',recovery_seed_files:[],rpc_url:'https://rpc.mmx.network',api_url:'https://api.gigahost.cloud',website_url:'https://gigahost.cloud',theme:'light',account_index:0,num_addresses:1 },
+  settings: { wallet_file:'/tmp/disposable-wallet.dat',ghost_seed_file:'/tmp/disposable-account.seed',recovery_seed_files:[],rpc_url:'https://rpc.mmx.network',api_url:'https://api.ghostrack.io',website_url:'https://ghostrack.io',theme:'light',account_index:0,num_addresses:1 },
   wallet: { file:'/tmp/disposable-wallet.dat',addresses:ok({addresses:[address]}),balance:ok({balances:[{amount:'12.345678',amount_atomic:'12345678'}]}),history:ok({history:[{type:'RECEIVE',memo:'<img src=x onerror="window.bad=true">',amount:'0.000001',txid:'a'.repeat(64),height:100,is_pending:false,time_stamp:1700000000000}]}) },
   wallets:ok({wallets:[]}),keys:ok({deposit_memo:'gh-test-memo'}),ghost_seed_file:'/tmp/disposable-account.seed',account:ok({account_alias:'gh-test-account',status:'active',key_epoch:1}),account_balance:ok({available_microusd:'123450000',reserved_microusd:'5000000'}),deposits:ok({items:[]}),activation_terms:ok({deposit_address:address,minimum_deposit_mmx_atomic:'1000000',minimum_confirmations:6,mmx_exchange_rate:{usd_per_mmx:'0.200000000000000000',expires_at:'2099-01-01T00:00:00Z'}}),operations:[],refreshed_at:1700000000,
   provider_balance:ok(null),payouts:ok([]),

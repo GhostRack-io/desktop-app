@@ -1,6 +1,6 @@
 #![cfg(windows)]
 //! Real Windows process/storage behavior, with disposable keys and no network.
-use gigahost_desktop::{
+use ghostrack_desktop::{
     Controller, Request,
     controller::{ghost_default, state_default},
     process::{Runner, Secret},
@@ -11,8 +11,8 @@ use std::{fs, path::PathBuf, process::Command};
 
 #[test]
 fn explorer_defaults_and_offline_key_creation() {
-    if let Ok(case) = std::env::var("GIGAHOST_TEST_DEFAULT_CASE") {
-        let root = PathBuf::from(std::env::var_os("GIGAHOST_TEST_HOME").unwrap());
+    if let Ok(case) = std::env::var("GHOSTRACK_TEST_DEFAULT_CASE") {
+        let root = PathBuf::from(std::env::var_os("GHOSTRACK_TEST_HOME").unwrap());
         let (seed, state) = match case.as_str() {
             "profile" => (
                 root.join("profile/.config/ghost/account.seed"),
@@ -38,12 +38,12 @@ fn explorer_defaults_and_offline_key_creation() {
         }
         let runner = Runner {
             ghost: PathBuf::from(
-                std::env::var_os("GIGAHOST_TEST_GHOST")
-                    .expect("Set GIGAHOST_TEST_GHOST to the built Ghost exe"),
+                std::env::var_os("GHOSTRACK_TEST_GHOST")
+                    .expect("Set GHOSTRACK_TEST_GHOST to the built Ghost exe"),
             ),
             wallet: PathBuf::from(
-                std::env::var_os("GIGAHOST_TEST_WALLET")
-                    .expect("Set GIGAHOST_TEST_WALLET to the built mmxwallet exe"),
+                std::env::var_os("GHOSTRACK_TEST_WALLET")
+                    .expect("Set GHOSTRACK_TEST_WALLET to the built mmxwallet exe"),
             ),
         };
         tokio::runtime::Runtime::new().unwrap().block_on(async {
@@ -113,8 +113,8 @@ fn explorer_defaults_and_offline_key_creation() {
         let mut child = Command::new(std::env::current_exe().unwrap());
         child
             .args(["--exact", "explorer_defaults_and_offline_key_creation"])
-            .env("GIGAHOST_TEST_DEFAULT_CASE", case)
-            .env("GIGAHOST_TEST_HOME", root.path())
+            .env("GHOSTRACK_TEST_DEFAULT_CASE", case)
+            .env("GHOSTRACK_TEST_HOME", root.path())
             .env("USERPROFILE", root.path().join("profile"))
             .env("APPDATA", root.path().join("roaming"))
             .env("LOCALAPPDATA", root.path().join("local"));
@@ -190,9 +190,9 @@ fn atomic_settings_replacement_preserves_no_clobber_exports() {
         assert_eq!(store.settings().unwrap().theme, theme);
     }
     let export = root.path().join("key-backup");
-    gigahost_desktop::store::save(&export, b"original", true).unwrap();
+    ghostrack_desktop::store::save(&export, b"original", true).unwrap();
     assert_eq!(
-        gigahost_desktop::store::save(&export, b"replacement", true)
+        ghostrack_desktop::store::save(&export, b"replacement", true)
             .unwrap_err()
             .code,
         "file_exists"

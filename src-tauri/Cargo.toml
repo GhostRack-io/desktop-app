@@ -1,18 +1,18 @@
 [package]
-name = "gigahost-desktop"
+name = "ghostrack-desktop"
 version = "0.1.6"
 edition = "2024"
 rust-version = "1.97"
 license = "Apache-2.0"
-default-run = "gigahost-desktop"
+default-run = "ghostrack-desktop"
 
 [workspace]
 
 [lib]
-name = "gigahost_desktop"
+name = "ghostrack_desktop"
 
 [[bin]]
-name = "gigahost-desktop"
+name = "ghostrack-desktop"
 path = "src/main.rs"
 required-features = ["desktop"]
 

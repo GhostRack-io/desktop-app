@@ -67,33 +67,33 @@ class SourceTests(unittest.TestCase):
             support.identity(self.repo)
 
     def origin_cases(self):
-        desktop = 'https://github.com/GhostRack-io/desktop-app.git'
+        desktop = 'https://github.com/ghostrack-io/desktop-app.git'
         for expected in (desktop, *support.REPOSITORIES.values()):
             for actual in (expected, expected[:-4]):
                 yield expected, actual, True
         for actual in (
                 'https://github.com/Other/desktop-app.git',
-                'https://github.com/GhostRack-io/other.git',
-                'http://github.com/GhostRack-io/desktop-app.git',
-                'ssh://git@github.com/GhostRack-io/desktop-app.git',
-                'git@github.com:GhostRack-io/desktop-app.git',
-                'https://user@github.com/GhostRack-io/desktop-app.git',
-                'https://github.com.example.com/GhostRack-io/desktop-app.git',
-                'https://GITHUB.com/GhostRack-io/desktop-app.git',
+                'https://github.com/ghostrack-io/other.git',
+                'http://github.com/ghostrack-io/desktop-app.git',
+                'ssh://git@github.com/ghostrack-io/desktop-app.git',
+                'git@github.com:ghostrack-io/desktop-app.git',
+                'https://user@github.com/ghostrack-io/desktop-app.git',
+                'https://github.com.example.com/ghostrack-io/desktop-app.git',
+                'https://GITHUB.com/ghostrack-io/desktop-app.git',
                 'https://github.com/ghostrack-io/desktop-app.git',
-                'https://github.com/GhostRack-io/../GhostRack-io/desktop-app.git',
+                'https://github.com/ghostrack-io/../ghostrack-io/desktop-app.git',
                 desktop + '.git', desktop + '/', desktop[:-4] + '/',
                 desktop + '?ref=main', desktop[:-4] + '?ref=main',
                 desktop + '#main', desktop[:-4] + '#main', desktop + '/extra',
                 desktop[:-4] + '.gi', desktop[:-4] + '.g', desktop + 'git'):
             yield desktop, actual, False
         for expected in (
-                'https://example.com/GhostRack-io/desktop-app.git',
-                'http://github.com/GhostRack-io/desktop-app.git',
-                'ssh://git@github.com/GhostRack-io/desktop-app.git',
-                'git@github.com:GhostRack-io/desktop-app.git',
-                'https://user@github.com/GhostRack-io/desktop-app.git',
-                'https://GITHUB.com/GhostRack-io/desktop-app.git'):
+                'https://example.com/ghostrack-io/desktop-app.git',
+                'http://github.com/ghostrack-io/desktop-app.git',
+                'ssh://git@github.com/ghostrack-io/desktop-app.git',
+                'git@github.com:ghostrack-io/desktop-app.git',
+                'https://user@github.com/ghostrack-io/desktop-app.git',
+                'https://GITHUB.com/ghostrack-io/desktop-app.git'):
             yield expected, expected, True
             yield expected, expected[:-4], False
         yield desktop[:-4], desktop[:-4], True
@@ -267,7 +267,7 @@ root=pathlib.Path(args[args.index('--root')+1]); (root/'bin').mkdir(parents=True
         desktop_git('init', '-b', 'main')
         desktop_git('config', 'user.name', 'Example')
         desktop_git('config', 'user.email', 'example@example.com')
-        desktop_git('remote', 'add', 'origin', 'https://github.com/GhostRack-io/desktop-app')
+        desktop_git('remote', 'add', 'origin', 'https://github.com/ghostrack-io/desktop-app')
         desktop_git('add', 'scripts', 'build-dependencies.json', '.gitignore')
         desktop_git('commit', '-m', 'Example desktop source')
         desktop_commit = desktop_git('rev-parse', 'HEAD').decode().strip()
@@ -303,7 +303,7 @@ else:
         self.assertEqual(metadata['desktop']['commit'], desktop_commit)
         self.assertFalse(metadata['desktop']['dirty'])
         self.assertEqual(desktop_git('remote', 'get-url', 'origin').decode().strip(),
-                         'https://github.com/GhostRack-io/desktop-app')
+                         'https://github.com/ghostrack-io/desktop-app')
         self.assertEqual(metadata['mmxwallet']['commit'], self.commit)
         self.assertFalse(metadata['mmxwallet']['dirty'])
         archive = (captured / 'mmxwallet.tar').read_bytes()
@@ -371,7 +371,7 @@ else:
         with patch.object(support, 'ROOT', desktop), patch.object(support, 'version'), patch.object(support, 'desktop_identity'), patch.object(support, 'component', return_value=executable), patch.object(support.subprocess, 'run') as run, patch('sys.argv', ['build-support.py', 'components', '--target', 'aarch64-apple-darwin']):
             support.main()
             run.assert_not_called()
-        self.assertEqual((desktop / 'src-tauri/binaries/gigahost-ghost-aarch64-apple-darwin').read_bytes(), executable.read_bytes())
+        self.assertEqual((desktop / 'src-tauri/binaries/ghostrack-ghost-aarch64-apple-darwin').read_bytes(), executable.read_bytes())
 
     def test_linux_package_tree_requires_exact_sidecars_and_readable_licenses(self):
         spec = importlib.util.spec_from_file_location('verify_linux', support.ROOT / 'scripts/verify-linux.py')
@@ -379,20 +379,20 @@ else:
         spec.loader.exec_module(verify)
         tree = self.root / 'package'
         (tree / 'usr/bin').mkdir(parents=True)
-        licenses = tree / 'usr/lib/Gigahost/licenses'
+        licenses = tree / 'usr/lib/GhostRack/licenses'
         licenses.mkdir(parents=True)
         manifest = {'target': 'x86_64-unknown-linux-gnu', 'sha256': {}}
         for name in ('ghost', 'mmxwallet'):
-            executable = tree / ('usr/bin/gigahost-' + name)
+            executable = tree / ('usr/bin/ghostrack-' + name)
             executable.write_bytes(name.encode())
-            manifest['sha256']['gigahost-' + name + '-' + manifest['target']] = verify.digest(executable)
+            manifest['sha256']['ghostrack-' + name + '-' + manifest['target']] = verify.digest(executable)
         for source in (support.ROOT / 'LICENSE', support.ROOT / 'public/shared/instrument-sans-ofl.txt', support.ROOT / 'public/shared/geist-mono-ofl.txt'):
             (licenses / source.name).write_bytes(source.read_bytes())
         verify.verify_tree(tree, manifest)
-        (tree / 'usr/bin/gigahost-ghost').write_bytes(b'changed during packaging')
+        (tree / 'usr/bin/ghostrack-ghost').write_bytes(b'changed during packaging')
         with self.assertRaisesRegex(ValueError, 'sidecar hash'):
             verify.verify_tree(tree, manifest)
-        (tree / 'usr/bin/gigahost-ghost').write_bytes(b'ghost')
+        (tree / 'usr/bin/ghostrack-ghost').write_bytes(b'ghost')
         (licenses / 'LICENSE').unlink()
         with self.assertRaisesRegex(ValueError, 'license'):
             verify.verify_tree(tree, manifest)
@@ -443,7 +443,7 @@ class WorkflowSourceTests(unittest.TestCase):
                 git('init', '-b', 'main')
                 git('config', 'user.name', 'Example')
                 git('config', 'user.email', 'example@example.com')
-                git('remote', 'add', 'origin', 'https://github.com/GhostRack-io/desktop-app.git')
+                git('remote', 'add', 'origin', 'https://github.com/ghostrack-io/desktop-app.git')
                 git('add', '.')
                 git('commit', '-m', 'Example desktop source')
                 commit = git('rev-parse', 'HEAD')

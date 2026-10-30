@@ -196,7 +196,7 @@ test('memo limits use UTF-8 bytes and key paths stay independently configurable'
   await page.getByRole('link',{name:'Settings'}).click();
   await page.getByLabel('MMX wallet file',{exact:true}).fill('/tmp/custom wallet.dat');
   await page.getByRole('button',{name:'Save settings'}).click();
-  await expect(page.getByLabel('Gigahost account key',{exact:true})).toHaveValue('/tmp/disposable-account.seed');
+  await expect(page.getByLabel('GhostRack account key',{exact:true})).toHaveValue('/tmp/disposable-account.seed');
   await expect(page.getByLabel('MMX wallet file',{exact:true})).toHaveValue('/tmp/custom wallet.dat');
 });
 
@@ -231,11 +231,11 @@ test('background updates preserve an approval link being edited',async({page})=>
   await openDesktop(page);
   await page.getByRole('link',{name:'Account'}).click();
   const input=page.getByLabel('Approval link or request ID');
-  await input.fill('https://gigahost.cloud/approvals/d991d038-bbfc-4a9b-82dd-0d1cf33281b7');
+  await input.fill('https://ghostrack.io/approvals/d991d038-bbfc-4a9b-82dd-0d1cf33281b7');
   await input.blur();
   const before=await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'snapshot').length);
   for (let tick=0;tick<3;tick++) await page.clock.fastForward(10_000);
-  await expect(input).toHaveValue('https://gigahost.cloud/approvals/d991d038-bbfc-4a9b-82dd-0d1cf33281b7');
+  await expect(input).toHaveValue('https://ghostrack.io/approvals/d991d038-bbfc-4a9b-82dd-0d1cf33281b7');
   await expect.poll(()=>page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'snapshot').length)).toBeGreaterThan(before);
 });
 
