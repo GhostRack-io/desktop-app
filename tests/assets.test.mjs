@@ -85,3 +85,26 @@ test('every custom property the app\'s stylesheets read is defined', async () =>
   assert.deepEqual(used('a{color:var(--x,var( --y))}'), ['x', 'y']);
   assert.deepEqual(declared('a{--x: 1; b--y:2; color:var(--z)}'), ['x']);
 });
+
+test('what stays in place over the content is opaque, and hover moves no text', async () => {
+  const app = code(await readFile(new URL('../src/style.css', import.meta.url), 'utf8'));
+  const { light, dark } = JSON.parse(await readFile(new URL('../public/shared/theme.json', import.meta.url), 'utf8'));
+  const rules = [...app.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => [selector.trim(), body]);
+  const background = selector => /(?:^|;)\s*background:\s*([^;]+)/.exec(rules.find(([name]) => name === selector)?.[1] ?? '')?.[1].trim();
+  const fills = {
+    dialog: 'var(--color-solid)', '#toast': 'var(--color-solid)',
+    '.field-local select option,#receive-select option': 'var(--color-solid)',
+    '.desktop-bar': 'var(--glass-bar)', '.desktop-sidebar': 'var(--color-glass-bar-end)',
+  };
+  for (const [selector, fill] of Object.entries(fills)) assert.equal(background(selector), fill, selector);
+  for (const mode of [light, dark]) for (const name of ['solid', 'glass-bar-top', 'glass-bar-end']) assert.match(mode[name], /^#[0-9a-f]{6}$/i, name);
+  assert.doesNotMatch(app, /backdrop-filter/);
+  const hovers = rules.filter(([selector]) => selector.includes(':hover'));
+  assert.ok(hovers.length > 0);
+  for (const [selector, body] of hovers) assert.doesNotMatch(body, /(?:^|[;\s])(?:transform|filter|will-change)\s*:/, selector);
+});
+
+test('the sidebar shows the configured version', async () => {
+  const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.ok((await readFile(new URL('../index.html', import.meta.url), 'utf8')).includes(`Preview · ${version}<`), version);
+});

@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 import { fixture, address, openDesktop } from './fixtures';
 
 test.beforeEach(async({page})=>{ await openDesktop(page); });
-test('uses the live Signal palette and exact money display',async({page})=>{
+test('uses the website palette and exact money display',async({page})=>{
   await expect(page.getByRole('heading',{name:'Your account, at a glance.'})).toBeVisible();
   await expect(page.getByText('12.345678',{exact:false}).first()).toBeVisible();
   await expect(page.getByText('$123.45',{exact:false})).toBeVisible();
-  expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim())).toBe('#f25000');
+  expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim())).toBe(JSON.parse(await readFile('public/shared/theme.json','utf8')).light.accent);
   await page.screenshot({animations:'disabled',path:'test-results/overview.png',fullPage:true});
   await page.getByRole('button',{name:'Change theme'}).click();
   expect(await page.evaluate(()=>document.documentElement.dataset.theme)).toBe('dark');

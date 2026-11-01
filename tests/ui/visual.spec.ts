@@ -59,12 +59,15 @@ test('app bar and page headings stay fixed when views change or scroll',async({p
   await expect(page.getByRole('link',{name:'Overview'})).toBeInViewport();
 });
 
-test('the app bar wears the website theme: paper, a hairline, the lockup at 32 px and the website fonts',async({page})=>{
+test('the app bar wears the website theme: its opaque bar, an edge, the lockup at 32 px and the website fonts',async({page})=>{
   const fonts:string[]=[];
   page.on('response',response=>{if(response.url().endsWith('.woff2')) fonts.push(`${response.url().split('/').pop()} ${response.status()}`);});
   await openDesktop(page);
-  const bar=await page.locator('.desktop-bar').evaluate(node=>({background:getComputedStyle(node).backgroundColor,border:getComputedStyle(node).borderBottomStyle,page:getComputedStyle(document.documentElement).backgroundColor}));
-  expect(bar.background).toBe(bar.page);
+  const bar=await page.locator('.desktop-bar').evaluate(node=>({image:getComputedStyle(node).backgroundImage,border:getComputedStyle(node).borderBottomStyle,rail:getComputedStyle(document.querySelector('.desktop-sidebar')!).backgroundColor}));
+  // Content scrolls under the bar, and text on a sticky layer needs an opaque one.
+  expect(bar.image).toContain('linear-gradient');
+  expect(bar.image).not.toContain('rgba');
+  expect(bar.rail).toMatch(/^rgb\(/);
   expect(bar.border).toBe('solid');
   const lockup=(await page.locator('.desktop-brand svg').boundingBox())!;
   expect(lockup.height).toBe(32);
@@ -160,10 +163,12 @@ for (const mode of [
   await page.getByLabel('Amount in MMX',{exact:true}).fill('0.000001');
   await page.getByRole('button',{name:'Review payment',exact:true}).click();
   const modal=await page.getByRole('dialog').evaluate(node=>{
-    const expected=document.createElement('div'); expected.style.background='var(--color-surface-raised)'; node.append(expected);
-    const result={bg:getComputedStyle(node).backgroundColor,expected:getComputedStyle(expected).backgroundColor,radius:getComputedStyle(node).borderRadius}; expected.remove(); return result;
+    const expected=document.createElement('div'); expected.style.background='var(--color-solid)'; node.append(expected);
+    const result={bg:getComputedStyle(node).backgroundColor,toast:getComputedStyle(document.querySelector('#toast')!).backgroundColor,expected:getComputedStyle(expected).backgroundColor,radius:getComputedStyle(node).borderRadius}; expected.remove(); return result;
   });
   expect(modal.bg).toBe(modal.expected);
+  expect(modal.toast).toBe(modal.expected);
+  expect(modal.bg).toMatch(/^rgb\(/);
   expect(modal.radius).toBe(values.panel[1]);
   await expect(page.getByRole('button',{name:'Confirm and send',exact:true})).toBeInViewport();
   if(mode.theme!=='system') await page.screenshot({animations:'disabled',path:`${shots}/theme-${mode.theme}-payment.png`});
