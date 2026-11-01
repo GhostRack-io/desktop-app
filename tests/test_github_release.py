@@ -192,6 +192,11 @@ class Preparation(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.out = Path(self.temporary.name)
+        # On a tag's run Actions sets GITHUB_REF, which stage() checks against the version.
+        environment = patch.dict(os.environ)
+        environment.start()
+        self.addCleanup(environment.stop)
+        os.environ.pop('GITHUB_REF', None)
 
     def stage(self, windows=None, linux=None, version='0.1.0'):
         with patch.object(release.desktop._support, 'version', return_value='0.1.0'):
