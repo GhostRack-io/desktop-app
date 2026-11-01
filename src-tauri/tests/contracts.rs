@@ -5,13 +5,13 @@ use gigahost_desktop::controller::{
 use gigahost_desktop::payouts::{amount_microusd, valid_address};
 use gigahost_desktop::store::{Settings, Store};
 #[test]
-fn fresh_settings_use_dark_and_saved_theme_choices_survive_reopening() {
+fn fresh_settings_use_light_and_saved_theme_choices_survive_reopening() {
     let home = tempfile::tempdir().unwrap();
     let store = Store::new(home.path().into()).unwrap();
-    assert_eq!(store.settings().unwrap().theme, "dark");
+    assert_eq!(store.settings().unwrap().theme, "light");
     assert_eq!(
         serde_json::from_str::<Settings>("{}").unwrap().theme,
-        "dark"
+        "light"
     );
     for theme in ["light", "dark", "system"] {
         let settings = Settings {
