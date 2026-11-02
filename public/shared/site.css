@@ -995,7 +995,7 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .graph__svg{display:block;inline-size:100%;block-size:11rem;overflow:hidden}
 .graph__grid{stroke:var(--color-divider);stroke-width:1}
 .graph__grid--base{stroke:var(--color-border)}
-.graph__tick{fill:var(--color-text-muted);font-size:var(--text-xs);font-variant-numeric:tabular-nums}
+.graph__tick{fill:var(--color-text-muted);font-size:var(--text-xs);font-variant-numeric:tabular-nums;stroke:var(--color-solid);stroke-width:.2em;stroke-linejoin:round;paint-order:stroke}
 .graph__area{stroke:none}
 .graph__line{fill:none;stroke:var(--line-0);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .graph__line--1{stroke:var(--line-1);stroke-width:1.5}
