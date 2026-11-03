@@ -15,7 +15,7 @@ class BundleInspection(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.TemporaryDirectory()
         self.addCleanup(self.root.cleanup)
-        self.app = Path(self.root.name) / "Gigahost.app"
+        self.app = Path(self.root.name) / "GhostRack.app"
         self.contents = self.app / "Contents"
         (self.contents / "MacOS").mkdir(parents=True)
         (self.contents / "Resources").mkdir()
@@ -23,11 +23,11 @@ class BundleInspection(unittest.TestCase):
             (self.contents / "MacOS" / name).write_bytes(name.encode())
         for name in ("icon.icns", "install.txt"):
             (self.contents / "Resources" / name).write_bytes(b"resource")
-        self.info = {"CFBundleIdentifier": "cloud.gigahost.desktop",
-                     "CFBundleExecutable": "gigahost-desktop",
+        self.info = {"CFBundleIdentifier": "io.ghostrack.desktop",
+                     "CFBundleExecutable": "ghostrack-desktop",
                      "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "0.1.0",
                      "LSMinimumSystemVersion": "11.0", "CFBundleIconFile": "icon.icns",
-                     "CFBundleURLTypes": [{"CFBundleURLSchemes": ["gigahost"]}]}
+                     "CFBundleURLTypes": [{"CFBundleURLSchemes": ["ghostrack"]}]}
         (self.contents / "Info.plist").write_bytes(plistlib.dumps(self.info))
         self.architectures = "x86_64 arm64\n"
         self.libraries = "binary:\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1345.0.0)\n"
@@ -88,7 +88,7 @@ Load command 2
                     self.commands = f"Load command 0\n cmd {kind}\n {field} {value}\n sdk 14.5\n"
                     with self.assertRaisesRegex(ValueError, "missing or malformed") as error:
                         bundle.inspect(self.app, "0.1.0")
-                    self.assertIn("gigahost-desktop/arm64", str(error.exception))
+                    self.assertIn("ghostrack-desktop/arm64", str(error.exception))
                     self.assertIn("configured baseline 11.0", str(error.exception))
                     self.assertIn(self.commands.rstrip(), str(error.exception))
             for fields in ["", f" {field} 11.0\n {field} 11.0\n"]:

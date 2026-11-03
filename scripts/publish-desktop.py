@@ -164,13 +164,13 @@ def prepare(windows, linux, version, revision, prefix, public_base, macos=None):
     public_base = validate_url(public_base, "Public base URL")
     filename_version = version.lower()
     package_names = {
-        "windows_x64": [f"gigahost_{filename_version}_windows_x64.zip"],
-        "linux_x64": [f"gigahost_{filename_version}_amd64.deb", f"gigahost_{filename_version}_amd64.appimage"],
+        "windows_x64": [f"ghostrack_{filename_version}_windows_x64.zip"],
+        "linux_x64": [f"ghostrack_{filename_version}_amd64.deb", f"ghostrack_{filename_version}_amd64.appimage"],
     }
     platforms = [(name, directory) for name, directory in
                  [("windows_x64", windows), ("linux_x64", linux)] if directory is not None]
     if macos is not None:
-        package_names["macos_universal"] = [f"gigahost_{filename_version}_macos_universal.dmg"]
+        package_names["macos_universal"] = [f"ghostrack_{filename_version}_macos_universal.dmg"]
         platforms.append(("macos_universal", macos))
     if not platforms:
         raise ValueError("Supply at least one platform directory")
@@ -193,14 +193,14 @@ def prepare(windows, linux, version, revision, prefix, public_base, macos=None):
             raise ValueError(f"{platform} package version differs")
         if platform != "macos_universal":
             suffix = '.exe' if platform == 'windows_x64' else ''
-            components = {f'gigahost-{name}-{expected_target}{suffix}' for name in ('ghost', 'mmxwallet')}
+            components = {f'ghostrack-{name}-{expected_target}{suffix}' for name in ('ghost', 'mmxwallet')}
             hashes = manifest.get('sha256')
             if (not isinstance(hashes, dict) or set(hashes) != components or
                     any(not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value)
                         for value in hashes.values())):
                 raise ValueError(f'{platform} component hashes are invalid')
         if platform == "macos_universal":
-            components = {"gigahost-desktop", "gigahost-ghost", "gigahost-mmxwallet"}
+            components = {"ghostrack-desktop", "ghostrack-ghost", "ghostrack-mmxwallet"}
             if manifest.get("architectures") != {name: ["arm64", "x86_64"] for name in components}:
                 raise ValueError("macOS must have universal architecture metadata for every component")
             hashes = manifest.get("sha256", {})
@@ -230,7 +230,7 @@ def prepare(windows, linux, version, revision, prefix, public_base, macos=None):
             uploads[name] = path
         if platform == "windows_x64":
             with ZipFile(uploads[package_names[platform][0]]) as archive:
-                installer = f"gigahost_{filename_version}_x64-setup.exe"
+                installer = f"ghostrack_{filename_version}_x64-setup.exe"
                 if sorted(archive.namelist()) != sorted([installer, "build.json", "install.txt"]):
                     raise ValueError("Windows ZIP contents differ from the expected installer and metadata")
                 if archive.getinfo(installer).file_size == 0 or json.loads(archive.read("build.json")) != manifest:
@@ -347,7 +347,7 @@ def main():
     parser.add_argument("--bucket", default=os.environ.get("DESKTOP_S3_BUCKET", "gigahost-apps"))
     parser.add_argument("--prefix", default=os.environ.get("DESKTOP_S3_PREFIX", "desktop"))
     parser.add_argument("--region", default=os.environ.get("DESKTOP_S3_REGION", "sg"))
-    parser.add_argument("--public-base", default=os.environ.get("DESKTOP_PUBLIC_BASE", "https://apps.gigahost.cloud"))
+    parser.add_argument("--public-base", default=os.environ.get("DESKTOP_PUBLIC_BASE", "https://apps.ghostrack.io"))
     args = parser.parse_args()
     uploads, latest, release_prefix = prepare(args.windows_dir, args.linux_dir, args.version,
                                                args.revision, args.prefix, args.public_base, macos=args.macos_dir)

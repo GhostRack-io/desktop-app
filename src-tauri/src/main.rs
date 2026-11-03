@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use gigahost_desktop::{
+use ghostrack_desktop::{
     Controller, Failure, Request,
     controller::{approval_id, state_default},
     process::Runner,
@@ -67,7 +67,7 @@ fn startup_approval(app: tauri::AppHandle, controller: State<'_, Controller>) ->
 }
 #[cfg(target_os = "linux")]
 fn register_linux(app: &tauri::App) -> std::result::Result<(), Box<dyn std::error::Error>> {
-    use gigahost_desktop::linux::{DESKTOP_FILE, install_launcher};
+    use ghostrack_desktop::linux::{DESKTOP_FILE, install_launcher};
     use std::{path::PathBuf, process::Command};
     let data_home = app.path().data_dir()?;
     let portable = app.env().appimage.map(PathBuf::from);
@@ -95,11 +95,11 @@ fn register_linux(app: &tauri::App) -> std::result::Result<(), Box<dyn std::erro
             .status();
     }
     if !Command::new("xdg-mime")
-        .args(["default", DESKTOP_FILE, "x-scheme-handler/gigahost"])
+        .args(["default", DESKTOP_FILE, "x-scheme-handler/ghostrack"])
         .status()?
         .success()
     {
-        return Err("could not register Gigahost approval links".into());
+        return Err("could not register GhostRack approval links".into());
     }
     Ok(())
 }
@@ -108,8 +108,8 @@ fn main() {
     {
         // GTK's Wayland app_id follows the process name even when its
         // GApplication ID is set. Both must match the installed launcher.
-        glib::set_prgname(Some(gigahost_desktop::linux::APP_ID));
-        glib::set_application_name("Gigahost");
+        glib::set_prgname(Some(ghostrack_desktop::linux::APP_ID));
+        glib::set_application_name("GhostRack");
     }
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
@@ -156,5 +156,5 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![desktop, startup_approval])
         .run(tauri::generate_context!())
-        .expect("could not start Gigahost desktop");
+        .expect("could not start GhostRack desktop");
 }

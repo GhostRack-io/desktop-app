@@ -371,7 +371,7 @@ else:
         with patch.object(support, 'ROOT', desktop), patch.object(support, 'version'), patch.object(support, 'desktop_identity'), patch.object(support, 'component', return_value=executable), patch.object(support.subprocess, 'run') as run, patch('sys.argv', ['build-support.py', 'components', '--target', 'aarch64-apple-darwin']):
             support.main()
             run.assert_not_called()
-        self.assertEqual((desktop / 'src-tauri/binaries/gigahost-ghost-aarch64-apple-darwin').read_bytes(), executable.read_bytes())
+        self.assertEqual((desktop / 'src-tauri/binaries/ghostrack-ghost-aarch64-apple-darwin').read_bytes(), executable.read_bytes())
 
     def test_linux_package_tree_requires_exact_sidecars_and_readable_licenses(self):
         spec = importlib.util.spec_from_file_location('verify_linux', support.ROOT / 'scripts/verify-linux.py')
@@ -379,20 +379,20 @@ else:
         spec.loader.exec_module(verify)
         tree = self.root / 'package'
         (tree / 'usr/bin').mkdir(parents=True)
-        licenses = tree / 'usr/lib/Gigahost/licenses'
+        licenses = tree / 'usr/lib/GhostRack/licenses'
         licenses.mkdir(parents=True)
         manifest = {'target': 'x86_64-unknown-linux-gnu', 'sha256': {}}
         for name in ('ghost', 'mmxwallet'):
-            executable = tree / ('usr/bin/gigahost-' + name)
+            executable = tree / ('usr/bin/ghostrack-' + name)
             executable.write_bytes(name.encode())
-            manifest['sha256']['gigahost-' + name + '-' + manifest['target']] = verify.digest(executable)
+            manifest['sha256']['ghostrack-' + name + '-' + manifest['target']] = verify.digest(executable)
         for source in (support.ROOT / 'LICENSE', support.ROOT / 'public/shared/instrument-sans-ofl.txt', support.ROOT / 'public/shared/geist-mono-ofl.txt'):
             (licenses / source.name).write_bytes(source.read_bytes())
         verify.verify_tree(tree, manifest)
-        (tree / 'usr/bin/gigahost-ghost').write_bytes(b'changed during packaging')
+        (tree / 'usr/bin/ghostrack-ghost').write_bytes(b'changed during packaging')
         with self.assertRaisesRegex(ValueError, 'sidecar hash'):
             verify.verify_tree(tree, manifest)
-        (tree / 'usr/bin/gigahost-ghost').write_bytes(b'ghost')
+        (tree / 'usr/bin/ghostrack-ghost').write_bytes(b'ghost')
         (licenses / 'LICENSE').unlink()
         with self.assertRaisesRegex(ValueError, 'license'):
             verify.verify_tree(tree, manifest)

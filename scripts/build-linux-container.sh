@@ -2,7 +2,7 @@
 set -euo pipefail
 desktop=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 source "$desktop/scripts/source-archive.sh"
-image=${DESKTOP_BUILD_IMAGE:-gigahost-desktop-linux:0.1.0}
+image=${DESKTOP_BUILD_IMAGE:-ghostrack-desktop-linux:0.1.0}
 inputs=$(mktemp -d)
 trap 'rm -rf -- "$inputs"' EXIT
 revision=$(source_archive "$desktop" https://github.com/GhostRack-io/desktop-app.git '' "$inputs/desktop.tar")

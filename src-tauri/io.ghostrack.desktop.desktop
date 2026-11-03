@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=GhostRack
+Comment=Your GhostRack account and MMX wallet
+Exec=ghostrack-desktop %u
+Icon=ghostrack-desktop
+Terminal=false
+Categories=Office;Finance;
+StartupNotify=true
+StartupWMClass=Io.ghostrack.desktop
+MimeType=x-scheme-handler/ghostrack;

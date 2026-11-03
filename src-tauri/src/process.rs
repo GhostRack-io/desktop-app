@@ -78,13 +78,13 @@ impl Runner {
             installed
         };
         let runner = Self {
-            ghost: resolve("gigahost-ghost"),
-            wallet: resolve("gigahost-mmxwallet"),
+            ghost: resolve("ghostrack-ghost"),
+            wallet: resolve("ghostrack-mmxwallet"),
         };
         if !runner.ghost.is_file() || !runner.wallet.is_file() {
             return Err(Failure::new(
                 "bundle_missing",
-                "The bundled wallet or account tool is missing. Reinstall Gigahost.",
+                "The bundled wallet or account tool is missing. Reinstall GhostRack.",
             ));
         }
         Ok(runner)
@@ -115,7 +115,7 @@ impl Runner {
         let mut child = command.spawn().map_err(|_| {
             Failure::new(
                 "bundle_unavailable",
-                "Could not start the bundled tool. Reinstall Gigahost.",
+                "Could not start the bundled tool. Reinstall GhostRack.",
             )
         })?;
         let stdout = child.stdout.take().unwrap();
@@ -182,7 +182,7 @@ impl Runner {
             if wallet && v["schema_version"] != 1 {
                 return Err(Failure::new(
                     "tool_incompatible",
-                    "The wallet interface is incompatible. Reinstall Gigahost.",
+                    "The wallet interface is incompatible. Reinstall GhostRack.",
                 ));
             }
             Ok(v)
@@ -229,14 +229,14 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let ghost = root
             .path()
-            .join(format!("gigahost-ghost{}", std::env::consts::EXE_SUFFIX));
+            .join(format!("ghostrack-ghost{}", std::env::consts::EXE_SUFFIX));
         let wallet = root.path().join(format!(
-            "gigahost-mmxwallet{}",
+            "ghostrack-mmxwallet{}",
             std::env::consts::EXE_SUFFIX
         ));
         std::fs::write(&ghost, []).unwrap();
         std::fs::write(&wallet, []).unwrap();
-        let runner = Runner::beside(&root.path().join("gigahost-desktop.exe")).unwrap();
+        let runner = Runner::beside(&root.path().join("ghostrack-desktop.exe")).unwrap();
         assert_eq!(runner.ghost, ghost);
         assert_eq!(runner.wallet, wallet);
     }

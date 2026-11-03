@@ -76,7 +76,7 @@ def main():
             manifest.get("notarized") is not False):
         raise ValueError("Wrong macOS preview metadata")
     version = manifest["version"]
-    name = f"gigahost_{version}_macos_universal.dmg".lower()
+    name = f"ghostrack_{version}_macos_universal.dmg".lower()
     image = packages / name
     expected = hashlib.sha256(image.read_bytes()).hexdigest()
     if (packages / "sha256sums-macos-universal").read_text() != f"{expected}  ./{name}\n":
@@ -85,7 +85,7 @@ def main():
     windows = Windows()
     process = None
     mounted = False
-    with tempfile.TemporaryDirectory(prefix="gigahost-macos-smoke-") as directory:
+    with tempfile.TemporaryDirectory(prefix="ghostrack-macos-smoke-") as directory:
         root = Path(directory)
         mount = root / "mount"
         mount.mkdir()
@@ -96,13 +96,13 @@ def main():
             run("hdiutil", "attach", "-readonly", "-nobrowse", "-noautoopen", "-mountpoint", str(mount), str(image))
             mounted = True
             apps = list(mount.glob("*.app"))
-            if len(apps) != 1 or apps[0].name != "Gigahost.app":
-                raise ValueError("Expected exactly one Gigahost.app in the DMG")
+            if len(apps) != 1 or apps[0].name != "GhostRack.app":
+                raise ValueError("Expected exactly one GhostRack.app in the DMG")
             inspected = bundle.inspect(apps[0], version)
             if any(manifest.get(key) != value for key, value in inspected.items()):
                 raise ValueError("Packaged binary checksums or architectures differ from build.json")
             # Simulate dragging to Applications without touching /Applications.
-            installed = root / "Applications/Gigahost.app"
+            installed = root / "Applications/GhostRack.app"
             installed.parent.mkdir()
             run("ditto", str(apps[0]), str(installed))
             if bundle.inspect(installed, version) != inspected:
@@ -116,8 +116,8 @@ def main():
                 env.pop(key, None)
             executable_dir = installed / "Contents/MacOS"
             native = ["/usr/bin/arch", "-" + args.native_arch]
-            ghost = executable_dir / "gigahost-ghost"
-            wallet = executable_dir / "gigahost-mmxwallet"
+            ghost = executable_dir / "ghostrack-ghost"
+            wallet = executable_dir / "ghostrack-mmxwallet"
             assert run(*native, str(ghost), "--version", env=env, text=True).startswith("ghost ")
             assert run(*native, str(wallet), "--version", env=env, text=True).startswith("mmxwallet ")
             capabilities = json.loads(run(*native, str(wallet), "--json", "capabilities", env=env))
@@ -131,7 +131,7 @@ def main():
             (state / "settings.json").write_text(json.dumps({"rpc_url": "http://127.0.0.1:9",
                 "api_url": "http://127.0.0.1:9", "website_url": "http://127.0.0.1:9"}))
             with log_path.open("w") as log:
-                process = subprocess.Popen([*native, str(executable_dir / "gigahost-desktop")],
+                process = subprocess.Popen([*native, str(executable_dir / "ghostrack-desktop")],
                                            env=env, stdout=log, stderr=log)
                 deadline = time.monotonic() + 45
                 while time.monotonic() < deadline:

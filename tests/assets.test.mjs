@@ -10,7 +10,7 @@ const declared = css => [...code(css).matchAll(/(?<![\w-])--([\w-]+)\s*:/g)].map
 const used = css => [...code(css).matchAll(/var\(\s*--([\w-]+)/g)].map(match => match[1]);
 
 async function exported() {
-  const out = await mkdtemp(path.join(tmpdir(), 'gigahost-desktop-assets-'));
+  const out = await mkdtemp(path.join(tmpdir(), 'ghostrack-desktop-assets-'));
   try {
     await exportAssets(out);
     return { files: await readdir(out), site: await readFile(path.join(out, 'site.css'), 'utf8') };
@@ -29,7 +29,7 @@ test('the stylesheet resolves every asset, and the fonts\' licences', async () =
 });
 
 test('light and dark artwork is copied without changing its bytes', async () => {
-  const out = await mkdtemp(path.join(tmpdir(), 'gigahost-desktop-art-'));
+  const out = await mkdtemp(path.join(tmpdir(), 'ghostrack-desktop-art-'));
   try {
     await exportAssets(out);
     for (const mode of ['light', 'dark']) for (const kind of ['hero', 'rail-start', 'rail-end', 'strip']) {
@@ -43,7 +43,7 @@ test('light and dark artwork is copied without changing its bytes', async () => 
 });
 
 test('the desktop icon uses the mark geometry and theme', async () => {
-  const out = await mkdtemp(path.join(tmpdir(), 'gigahost-desktop-icon-'));
+  const out = await mkdtemp(path.join(tmpdir(), 'ghostrack-desktop-icon-'));
   try {
     await exportAssets(out);
     const theme = JSON.parse(await readFile(new URL('../public/shared/theme.json', import.meta.url), 'utf8'));

@@ -5,8 +5,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const DESKTOP_FILE: &str = "cloud.gigahost.desktop.desktop";
-pub const APP_ID: &str = "cloud.gigahost.desktop";
+pub const DESKTOP_FILE: &str = "io.ghostrack.desktop.desktop";
+pub const APP_ID: &str = "io.ghostrack.desktop";
 const MANAGED: &str = "X-Gigahost-Managed=true";
 
 fn managed_launcher(path: &Path, icon_file: &Path) -> bool {
@@ -34,16 +34,16 @@ fn managed_launcher(path: &Path, icon_file: &Path) -> bool {
         .lines()
         .map(|line| {
             if line.starts_with("Exec=") {
-                "Exec=gigahost-desktop %u"
+                "Exec=ghostrack-desktop %u"
             } else if line == format!("Icon={}", value(icon)) {
-                "Icon=gigahost-desktop"
+                "Icon=ghostrack-desktop"
             } else {
                 line
             }
         })
         .collect::<Vec<_>>()
         .join("\n");
-    normalized == include_str!("../cloud.gigahost.desktop.desktop").trim_end()
+    normalized == include_str!("../io.ghostrack.desktop.desktop").trim_end()
 }
 
 fn value(text: &str) -> String {
@@ -88,7 +88,7 @@ pub fn install_launcher(
 ) -> Result<()> {
     let apps = data_home.join("applications");
     let icons = data_home.join("icons/hicolor/128x128/apps");
-    let icon_file = icons.join("gigahost-desktop.png");
+    let icon_file = icons.join("ghostrack-desktop.png");
     let launcher = apps.join(DESKTOP_FILE);
     if !portable
         && system_data
@@ -104,14 +104,14 @@ pub fn install_launcher(
     fs::create_dir_all(&icons)?;
     let entry = format!(
         "{}\n{MANAGED}\n",
-        include_str!("../cloud.gigahost.desktop.desktop").trim_end()
+        include_str!("../io.ghostrack.desktop.desktop").trim_end()
     )
     .replace(
-        "Exec=gigahost-desktop %u",
+        "Exec=ghostrack-desktop %u",
         &format!("Exec={}", executable(exe)?),
     )
     .replace(
-        "Icon=gigahost-desktop",
+        "Icon=ghostrack-desktop",
         &format!("Icon={}", value(path_text(&icon_file)?)),
     );
     if fs::read(&icon_file).ok().as_deref() != Some(icon) {

@@ -100,7 +100,7 @@ test('the backend unactivated response leads through GUI payment and account act
   });
   await page.getByRole('button',{name:'Check activation',exact:true}).click();
   await expect(page.getByRole('heading',{name:'gh-new-account',exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Open Gigahost',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Open GhostRack',exact:true})).toBeEnabled();
   expect(await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'prepare_send').length)).toBe(1);
   expect(await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'activate_account').length)).toBe(1);
 });

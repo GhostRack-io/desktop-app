@@ -56,7 +56,7 @@ export function githubLabel(github: { login?: string; linked_at?: string } | nul
 // Account activation agreement and
 // `ghost account activate` say it: activation with GitHub opens the website's sign-up page, which says
 // it too, but a deposit's automatic activation shows nothing else.
-export const SIGNUP_AGREEMENT = 'By activating the account, with GitHub or with a deposit, you agree to the Terms of Service and the Acceptable Use Policy at gigahost.cloud/terms, and ask that the service starts at once.';
+export const SIGNUP_AGREEMENT = 'By activating the account, with GitHub or with a deposit, you agree to the Terms of Service and the Acceptable Use Policy at ghostrack.io/terms, and ask that the service starts at once.';
 export const TRIAL_LIMITS = 'Trial limits hold until you add funds: instances of 1 vCPU with a shared IP on the platform’s own hosts, no outgoing mail, and no offering of hosts. Adding funds lifts them; the trial credit still ends on its date.';
 
 export function historyLabel(type: string): string {

@@ -6,7 +6,7 @@ Set-StrictMode -Version Latest
 if (-not $IsWindows) { throw 'This smoke test requires Windows.' }
 $desktop = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $config = Get-Content "$desktop/src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
-$zipName = "gigahost_$($config.version)_windows_x64.zip".ToLowerInvariant()
+$zipName = "ghostrack_$($config.version)_windows_x64.zip".ToLowerInvariant()
 $packages = Join-Path $desktop 'artifacts/packages'
 $expected = (Get-Content "$packages/sha256sums-windows-x64").Split(' ')[0]
 $actual = (Get-FileHash "$packages/$zipName" -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -15,14 +15,14 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::OpenRead("$packages/$zipName")
 try {
     $entries = @($archive.Entries | ForEach-Object { $_.FullName })
-    $expectedEntries = @("gigahost_$($config.version)_x64-setup.exe".ToLowerInvariant(), 'build.json', 'install.txt')
+    $expectedEntries = @("ghostrack_$($config.version)_x64-setup.exe".ToLowerInvariant(), 'build.json', 'install.txt')
     if (@(Compare-Object $expectedEntries $entries -CaseSensitive).Count -ne 0) {
         throw 'ZIP contents differ from the expected lowercase installer and metadata.'
     }
 } finally {
     $archive.Dispose()
 }
-$root = Join-Path ([IO.Path]::GetTempPath()) ('gigahost-install-smoke-' + [guid]::NewGuid())
+$root = Join-Path ([IO.Path]::GetTempPath()) ('ghostrack-install-smoke-' + [guid]::NewGuid())
 $download = Join-Path $root 'extracted download'
 $install = Join-Path $root 'installed app'
 $savedEnvironment = @{}
@@ -46,7 +46,7 @@ try {
     # /D must be the last NSIS argument and must not be quoted, even with spaces.
     $setup = Start-Process $installers[0].FullName -ArgumentList "/S /D=$install" -PassThru
     Wait-Checked $setup 300000 'Silent installation'
-    foreach ($name in @('gigahost-desktop.exe', 'gigahost-ghost.exe', 'gigahost-mmxwallet.exe', 'vcruntime140.dll', 'uninstall.exe')) {
+    foreach ($name in @('ghostrack-desktop.exe', 'ghostrack-ghost.exe', 'ghostrack-mmxwallet.exe', 'vcruntime140.dll', 'uninstall.exe')) {
         if (-not (Test-Path (Join-Path $install $name))) { throw "Installed file missing: $name" }
     }
     # Match an Explorer launch without HOME, and keep all controller key/state
@@ -61,7 +61,7 @@ try {
     }
     # Launch directly with this process's disposable environment. Shell
     # activation can involve Explorer, which has its own user environment.
-    $start = [Diagnostics.ProcessStartInfo]::new("$install/gigahost-desktop.exe")
+    $start = [Diagnostics.ProcessStartInfo]::new("$install/ghostrack-desktop.exe")
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
     $app = [Diagnostics.Process]::Start($start)
@@ -93,7 +93,7 @@ try {
         # _?= runs the uninstaller in place so waiting observes actual removal.
         $uninstall = Start-Process "$install/uninstall.exe" -ArgumentList "/S _?=$install" -PassThru
         Wait-Checked $uninstall 60000 'Silent uninstall'
-        if (Test-Path "$install/gigahost-desktop.exe") { throw 'Uninstaller left the installed application.' }
+        if (Test-Path "$install/ghostrack-desktop.exe") { throw 'Uninstaller left the installed application.' }
     }
     if (Test-Path $root) { Remove-Item $root -Recurse -Force }
 }

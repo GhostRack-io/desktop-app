@@ -52,7 +52,7 @@ if 'remove-password' in args:
 if 'signup' in args or 'link-github' in args or 'unlink-github' in args or 'github-status' in args:
     Path(__file__).with_name('ghost-args.json').write_text(json.dumps(args))
     if 'unlink-github' in args: reply({'unlinked':True,'ended_sessions':1})
-    if 'signup' in args or 'link-github' in args: reply({'claim_id':'claim-one','claim_url':scenario.get('claim_url','https://gigahost.cloud/trial/start?claim=claim-one'),'expires_at':'2026-10-16T12:10:00Z'})
+    if 'signup' in args or 'link-github' in args: reply({'claim_id':'claim-one','claim_url':scenario.get('claim_url','https://ghostrack.io/trial/start?claim=claim-one'),'expires_at':'2026-10-16T12:10:00Z'})
     reply({'status':scenario.get('claim_status','pending'),'account_alias':None,'reason':None,'expires_at':'2026-10-16T12:10:00Z'})
 if 'offering' in args: reply(scenario['offering'])
 if 'approve' in args:

@@ -1,6 +1,6 @@
 #![cfg(unix)]
 //! Exercise the real controller with local sidecar doubles, without sockets.
-use gigahost_desktop::{Controller, Request, process::Runner, store::Settings};
+use ghostrack_desktop::{Controller, Request, process::Runner, store::Settings};
 use serde_json::{Value, json};
 use std::{
     fs,
@@ -43,7 +43,7 @@ impl Fixture {
             settings,
         }
     }
-    async fn call(&self, request: Value) -> gigahost_desktop::Result<Value> {
+    async fn call(&self, request: Value) -> ghostrack_desktop::Result<Value> {
         self.controller
             .dispatch(serde_json::from_value::<Request>(request).unwrap())
             .await
@@ -55,7 +55,7 @@ impl Fixture {
         )
         .unwrap();
     }
-    async fn payment(&self) -> gigahost_desktop::Result<Value> {
+    async fn payment(&self) -> ghostrack_desktop::Result<Value> {
         self.call(json!({"action":"prepare_send","purpose":"send","target":"disposable-recipient","amount":"1","memo":null,"passphrase":null})).await
     }
     fn restore(&self, new_instance: bool) -> String {
@@ -95,7 +95,7 @@ async fn payment_confirmations_survive_restart_and_old_journals_remain_readable(
         assert_eq!(saved.state, "included");
         assert_eq!(saved.confirmations, Some(confirmations));
     }
-    let reopened = gigahost_desktop::store::Store::new(f.controller.store.root.clone()).unwrap();
+    let reopened = ghostrack_desktop::store::Store::new(f.controller.store.root.clone()).unwrap();
     assert_eq!(reopened.get(id).unwrap().confirmations, Some(10));
     // Further manual checks can observe a changed confirmation count.
     f.scenario(json!({"transaction":{"status":"included","confirmations":12}}));

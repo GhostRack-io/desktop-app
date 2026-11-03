@@ -120,7 +120,7 @@ class Service(http.server.BaseHTTPRequestHandler):
 
 class Desktop(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory(prefix='gigahost-desktop-test-')
+        self.temp=tempfile.TemporaryDirectory(prefix='ghostrack-desktop-test-')
         self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)
         class LocalServer(http.server.ThreadingHTTPServer):
@@ -134,7 +134,7 @@ class Desktop(unittest.TestCase):
         self.server.payouts=[]; self.server.payout_by_key={}; self.server.payout_requests=[]; self.server.address_writes=[]
         self.server.drop_payout=False; self.server.drop_address=False; self.server.payout_refusal=None
         self.server.drop_broadcast=False; self.server.drop_migration=False; self.server.migrated=False; self.server.new_key_id=None; self.server.new_memo=None
-        self.server.login_url='https://gigahost.cloud/login?token=disposable-secret'
+        self.server.login_url='https://ghostrack.io/login?token=disposable-secret'
         self.thread=threading.Thread(target=self.server.serve_forever,daemon=True); self.thread.start()
         self.addCleanup(self.stop_server)
         self.url='http://127.0.0.1:'+str(self.server.server_port)
@@ -148,7 +148,7 @@ class Desktop(unittest.TestCase):
         self.account_keys=account['keys']
         self.server.intent=None
         self.start_driver()
-        settings={'wallet_file':str(self.wallet),'ghost_seed_file':str(self.seed),'recovery_seed_files':[],'rpc_url':self.url,'api_url':self.url,'website_url':'https://gigahost.cloud','theme':'light','account_index':0,'num_addresses':1}
+        settings={'wallet_file':str(self.wallet),'ghost_seed_file':str(self.seed),'recovery_seed_files':[],'rpc_url':self.url,'api_url':self.url,'website_url':'https://ghostrack.io','theme':'light','account_index':0,'num_addresses':1}
         self.request('save_settings',settings=settings)
     def stop_server(self):
         self.server.shutdown(); self.server.server_close(); self.thread.join()
@@ -468,7 +468,7 @@ class Desktop(unittest.TestCase):
         return intent
     def test_hosted_restore_review_and_resume_are_bound_to_one_intent(self):
         intent=self.restore_fixture()
-        op=self.request('inspect_restore',reference='https://gigahost.cloud/approvals/'+intent)
+        op=self.request('inspect_restore',reference='https://ghostrack.io/approvals/'+intent)
         self.assertEqual(op['review']['restore_charge_microusd'],'1954')
         self.assertEqual(op['review']['matching_recovery_files'],[str(self.seed)])
         self.assertNotIn('wrapped_data_key',op['review']['backup'])
