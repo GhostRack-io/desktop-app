@@ -102,6 +102,35 @@ fn links_cannot_change_backend_or_authorize_commands() {
     }
 }
 #[test]
+fn the_former_website_name_and_ghostrack_io_are_one_website() {
+    let id = "d991d038-bbfc-4a9b-82dd-0d1cf33281b7";
+    for website in ["https://gigahost.cloud", "https://ghostrack.io"] {
+        for host in ["gigahost.cloud", "ghostrack.io"] {
+            let approval = format!("https://{host}/approvals/{id}");
+            assert_eq!(approval_id(&approval, website).unwrap(), id, "{approval}");
+            let claim = format!("https://{host}/trial/start?claim=abc");
+            assert!(claim_link(&claim, website).is_ok(), "{claim} on {website}");
+        }
+        for link in [
+            "https://ghostrack.io.evil.example/trial/start?claim=abc",
+            "https://ghostrack.io:8443/trial/start?claim=abc",
+            "https://gigahost.cloud:8443/trial/start?claim=abc",
+            "http://ghostrack.io/trial/start?claim=abc",
+            "https://docs.ghostrack.io/trial/start?claim=abc",
+        ] {
+            assert!(claim_link(link, website).is_err(), "{link} on {website}");
+        }
+    }
+    // Any other website is matched exactly.
+    assert!(
+        claim_link(
+            "https://ghostrack.io/trial/start?claim=abc",
+            "https://example.test"
+        )
+        .is_err()
+    );
+}
+#[test]
 fn remote_connections_require_https_without_embedded_credentials() {
     for good in [
         "https://api.gigahost.cloud",

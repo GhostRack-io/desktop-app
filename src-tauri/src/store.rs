@@ -28,7 +28,7 @@ impl Default for Settings {
             recovery_seed_files: vec![],
             rpc_url: "https://rpc.mmx.network".into(),
             api_url: "https://api.gigahost.cloud".into(),
-            website_url: "https://gigahost.cloud".into(),
+            website_url: "https://ghostrack.io".into(),
             theme: "light".into(),
             account_index: 0,
             num_addresses: 1,

@@ -290,7 +290,7 @@ pub fn claim_link(link: &str, website: &str) -> Result<Url> {
     let claim = Url::parse(link)
         .map_err(|_| Failure::new("invalid_github_claim", "The GitHub link is invalid."))?;
     let trusted = validate_url(website)?;
-    if claim.origin() != trusted.origin()
+    if website_origin(&claim) != website_origin(&trusted)
         || !claim.username().is_empty()
         || claim.password().is_some()
     {
@@ -378,6 +378,16 @@ pub fn state_default() -> Result<PathBuf> {
     });
     state.ok_or_else(|| Failure::new("home_unavailable", "Your home directory is unavailable."))
 }
+/// gigahost.cloud is the website's former name and redirects to ghostrack.io
+/// (2026-11-03): a link on either belongs to a website configured as either.
+fn website_origin(url: &Url) -> url::Origin {
+    match (url.scheme(), url.host_str(), url.port()) {
+        ("https", Some("gigahost.cloud"), None) => Url::parse("https://ghostrack.io")
+            .expect("a valid URL")
+            .origin(),
+        _ => url.origin(),
+    }
+}
 pub fn validate_url(text: &str) -> Result<Url> {
     let url =
         Url::parse(text).map_err(|_| Failure::new("invalid_url", "Enter a full HTTPS URL."))?;
@@ -419,7 +429,7 @@ pub fn approval_id(reference: &str, website: &str) -> Result<String> {
         pairs[0].1.to_string()
     } else {
         let trusted = validate_url(website)?;
-        if url.origin() != trusted.origin()
+        if website_origin(&url) != website_origin(&trusted)
             || url.query().is_some()
             || url.fragment().is_some()
             || !url.username().is_empty()
@@ -805,7 +815,7 @@ impl Controller {
                     Failure::new("invalid_login", "The website login link is invalid.")
                 })?;
                 let trusted = validate_url(&s.website_url)?;
-                if login.origin() != trusted.origin()
+                if website_origin(&login) != website_origin(&trusted)
                     || !login.username().is_empty()
                     || login.password().is_some()
                 {
