@@ -4,7 +4,7 @@
 --color-transparent:#00000000;
 --color-art-led-amber:#f5a524;
 --color-art-led-green:#22c55e;
---color-bg:#eee9f6;
+--color-bg:#f8f6fb;
 --color-surface:#ffffff99;
 --color-surface-raised:#ffffffb3;
 --color-surface-sunken:#3e386e17;
@@ -74,16 +74,16 @@
 --color-glass-card:#ffffffc2;
 --color-glass-card-end:#ffffff70;
 --color-glass-card-on:#fff6f0f0;
---color-glass-button-glow:#cc4200cc;
+--color-glass-button-glow:#cc420070;
 --color-glass-button-ray:#ffffff61;
 --color-glass-control-edge:#3e386e5c;
 --color-glass-well:#ffffff80;
---color-glass-glow-1:#ff6a24a8;
---color-glass-glow-2:#ff3ea461;
---color-glass-glow-3:#3468ff99;
---color-glass-glow-4:#9646ff75;
---color-glass-glow-5:#10cea685;
---color-glass-glow-6:#ff962480;
+--color-glass-glow-1:#ff8f5b5c;
+--color-glass-glow-2:#ff6ebb35;
+--color-glass-glow-3:#678eff54;
+--color-glass-glow-4:#b074ff40;
+--color-glass-glow-5:#4cdabc49;
+--color-glass-glow-6:#ffb05b46;
 --font-sans:"Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif;
 --font-mono:"Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 --text-xs:0.75rem;
@@ -212,16 +212,16 @@
 --color-glass-card:#ffffff24;
 --color-glass-card-end:#ffffff0b;
 --color-glass-card-on:#ff8c504d;
---color-glass-button-glow:#ff6e28d9;
+--color-glass-button-glow:#ff6e2877;
 --color-glass-button-ray:#ffffff61;
 --color-glass-control-edge:#ffffff5c;
 --color-glass-well:#00000057;
---color-glass-glow-1:#ff5c189e;
---color-glass-glow-2:#ff2c966b;
---color-glass-glow-3:#2c68ffb8;
---color-glass-glow-4:#8838ff99;
---color-glass-glow-5:#0ac8a080;
---color-glass-glow-6:#ff821e75;}}
+--color-glass-glow-1:#ff5c1857;
+--color-glass-glow-2:#ff2c963b;
+--color-glass-glow-3:#2c68ff65;
+--color-glass-glow-4:#8838ff54;
+--color-glass-glow-5:#0ac8a046;
+--color-glass-glow-6:#ff821e40;}}
 :root[data-theme="dark"],:root[data-theme="dark"] ::backdrop{color-scheme:dark;
 --color-transparent:#00000000;
 --color-art-led-amber:#ffb43a;
@@ -296,16 +296,16 @@
 --color-glass-card:#ffffff24;
 --color-glass-card-end:#ffffff0b;
 --color-glass-card-on:#ff8c504d;
---color-glass-button-glow:#ff6e28d9;
+--color-glass-button-glow:#ff6e2877;
 --color-glass-button-ray:#ffffff61;
 --color-glass-control-edge:#ffffff5c;
 --color-glass-well:#00000057;
---color-glass-glow-1:#ff5c189e;
---color-glass-glow-2:#ff2c966b;
---color-glass-glow-3:#2c68ffb8;
---color-glass-glow-4:#8838ff99;
---color-glass-glow-5:#0ac8a080;
---color-glass-glow-6:#ff821e75;}
+--color-glass-glow-1:#ff5c1857;
+--color-glass-glow-2:#ff2c963b;
+--color-glass-glow-3:#2c68ff65;
+--color-glass-glow-4:#8838ff54;
+--color-glass-glow-5:#0ac8a046;
+--color-glass-glow-6:#ff821e40;}
 }
 
 
@@ -473,9 +473,9 @@ main:focus{outline:none}
 .btn[aria-busy=true]::before{content:"";flex:none;inline-size:1.1em;block-size:.3em;background:linear-gradient(90deg,currentColor 0 .3em,var(--color-transparent) 0) 0 0 / .4em 100% repeat-x;animation:march .5s steps(4) infinite}
 @keyframes march{to{background-position:.4em 0}}
 
-:root{--art-hero:url("art-hero-light.svg");--art-rail-start:url("art-rail-start-light.svg");--art-rail-end:url("art-rail-end-light.svg");--art-strip:url("art-strip-light.svg");--art-rail-alpha:.92;--art-rail-alpha-wide:1;--art-copy-alpha:.24;--art-side:0rem}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--art-hero:url("art-hero-dark.svg");--art-rail-start:url("art-rail-start-dark.svg");--art-rail-end:url("art-rail-end-dark.svg");--art-strip:url("art-strip-dark.svg");--art-copy-alpha:.56}}
-:root[data-theme="dark"]{--art-hero:url("art-hero-dark.svg");--art-rail-start:url("art-rail-start-dark.svg");--art-rail-end:url("art-rail-end-dark.svg");--art-strip:url("art-strip-dark.svg");--art-copy-alpha:.56}
+:root{--art-hero:url("art-hero-light.svg");--art-rail-start:url("art-rail-start-light.svg");--art-rail-end:url("art-rail-end-light.svg");--art-strip:url("art-strip-light.svg");--art-rail-alpha:.92;--art-rail-alpha-wide:1;--art-copy-alpha:.13;--art-side:0rem}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--art-hero:url("art-hero-dark.svg");--art-rail-start:url("art-rail-start-dark.svg");--art-rail-end:url("art-rail-end-dark.svg");--art-strip:url("art-strip-dark.svg");--art-copy-alpha:.31}}
+:root[data-theme="dark"]{--art-hero:url("art-hero-dark.svg");--art-rail-start:url("art-rail-start-dark.svg");--art-rail-end:url("art-rail-end-dark.svg");--art-strip:url("art-strip-dark.svg");--art-copy-alpha:.31}
 .art{position:absolute;inset:0;z-index:-1;display:none;pointer-events:none}
 .art>svg{display:block}
 .art--r{inset-inline-start:auto}
