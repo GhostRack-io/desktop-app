@@ -495,8 +495,8 @@ main:focus{outline:none}
 .site-header--short .art-strip{inset-inline:calc(var(--art-c) + 25rem) calc(var(--art-c) + 15.5rem)}
 .art-led{position:absolute;inset-inline-start:calc(50% - 10.5rem + 6.33rem);inset-block-start:.74rem;inline-size:.1625rem;block-size:.08125rem;margin:-.040625rem 0 0 -.08125rem;background:var(--color-art-led-amber);box-shadow:0 0 .1875rem var(--color-art-led-amber)}
 @media (prefers-reduced-motion:no-preference){
-.art-led{animation:art-blink 1.3s step-end infinite}
-.art-hb{animation:art-hb 1s step-end infinite}
+.art-led{animation:art-blink 1.3s step-end 4}
+.art-hb{animation:art-hb 1s step-end 6}
 }
 
 @keyframes art-hb{50%{visibility:hidden}}
@@ -1236,6 +1236,8 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 #offerings .private-tag{margin-inline-start:var(--space-2)}
 #offerings .loc .cell-note a{color:var(--color-text-muted)}
 #offerings .loc .cell-note a:hover{color:var(--color-text)}
+
+#offerings .loc .cell-note>a,.offer-list__head .note--link>a{padding-block:.375rem}
 #offerings .rel .cell-note{max-inline-size:none}
 #offerings :is(th,td){line-height:1.35}
 #offerings .cell-note{margin-block-start:.125rem}
@@ -1390,6 +1392,10 @@ form[data-action="offering.rent"]{display:flex}
 
 .login{display:grid;gap:var(--space-3);max-inline-size:var(--measure)}
 .login>:is(.code-block,.field){max-inline-size:40rem}
+.login-parts{display:grid;gap:var(--space-4);max-inline-size:var(--measure)}
+.login-part{display:grid;gap:var(--space-3);align-content:start}
+.login-part+.login-part{padding-block-start:var(--space-4);border-block-start:var(--border) solid var(--color-divider)}
+.login-part>h3{margin:0}
 .login__status:empty{position:absolute}
 
 .flow,.reveal{display:grid;gap:var(--space-4);max-inline-size:36rem;padding:var(--space-4) var(--space-5);border:var(--border) solid var(--color-divider);background:var(--color-glass-well);box-shadow:var(--glass-inset);border-radius:var(--radius)}
