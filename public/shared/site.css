@@ -1303,7 +1303,7 @@ form[data-action="offering.rent"]{display:flex}
 @media (min-width:40em){.env-row{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) auto}}
 
 @media (min-width:40em){.env-row+.env-row .env-row__part>span{position:absolute;inline-size:var(--border);block-size:var(--border);margin:calc(var(--border) * -1);overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
-.offering-side,.offering-cli{display:grid;gap:var(--space-3);align-content:start}
+.offering-side,.offering-cli,.offering-login{display:grid;gap:var(--space-3);align-content:start}
 .offering-side{gap:var(--space-5)}
 .offering-hosts{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4)}
 
