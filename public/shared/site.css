@@ -610,6 +610,15 @@ input[data-type="dollars"]{text-align:end}
 .choice__input:disabled+.choice__label{border-color:var(--color-border);border-style:dashed;background:var(--color-transparent);box-shadow:none;color:var(--color-text-muted);cursor:not-allowed}
 .choice__title{font-weight:var(--weight-bold)}
 
+.choice>.choice__label,.choice>.choice__version{grid-area:1/1}
+.choice__label--versions{padding-block-end:calc(var(--space-4) + var(--control-height) + var(--space-2))}
+.field .choice__version{z-index:1;align-self:end;justify-self:start;inline-size:auto;max-inline-size:calc(100% - 2.875rem - var(--space-4));margin:0 var(--space-4) var(--space-4) 2.875rem}
+
+.os-icon{vertical-align:-.15em}
+.os-mono-dark path{fill:var(--os-mono)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--os-mono:currentColor}}
+:root[data-theme="dark"]{--os-mono:currentColor}
+
 .badge{--c:var(--color-neutral);--s:var(--color-neutral-surface);--t:var(--color-neutral-text)}
 [data-tone=success]{--c:var(--color-success);--s:var(--color-success-surface);--t:var(--color-success-text)}
 [data-tone=working]{--c:var(--color-accent);--s:var(--color-accent-surface);--t:var(--color-accent-strong)}
