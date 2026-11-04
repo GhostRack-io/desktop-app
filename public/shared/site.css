@@ -1584,6 +1584,11 @@ form[data-action="offering.rent"]{display:flex}
 .size-preview .is-empty{color:var(--color-text)}
 .provider-tabs{margin-block-start:calc(var(--space-4) * -1)}
 
+.agents{display:grid;gap:var(--space-5)}
+.agents-band{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3) var(--space-5);padding:var(--space-3) var(--space-4);background:var(--s);border-radius:var(--radius);border-inline-start:.25rem solid var(--c)}
+.agents-band>.facts{flex:1 1 20rem}
+.agents-band__actions{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+
 
 
 
