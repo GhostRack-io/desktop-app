@@ -96,13 +96,19 @@ its keys and does not encrypt the wallet file. Keep safe backups.
 
 Settings and operation state use `$XDG_STATE_HOME/ghostrack` or
 `$HOME/.local/state/ghostrack`; on Windows, `%LOCALAPPDATA%\ghostrack`. A
-computer that already has the `gigahost` folder there from version 0.1.7 or
-earlier keeps using it, so pending operations stay where they were saved; the
-app never moves or merges the two. If both folders hold saved operations, the
-app does not start until one of them is moved elsewhere. Keys and
-state remain outside the install directory. Uncertain transfers retain their
-reviewed bytes and reconcile before retrying. Background refreshes never submit
-payments. The browser preview cannot sign account or wallet operations.
+computer where version 0.1.7 or earlier saved settings or operations in the
+`gigahost` folder there keeps using it, so pending operations stay where they
+were saved; the app never moves or merges the two. If both folders hold saved
+operations, the app does not start until one of them is moved elsewhere. Keys
+remain outside the install directory and uninstalling keeps the state; on
+Windows GhostRack installs into its state folder by default. Uncertain transfers
+retain their reviewed bytes and reconcile before retrying. Background refreshes
+never submit payments. The browser preview cannot sign account or wallet
+operations.
+
+The Debian package replaces the former `gigahost` package. On Windows and macOS
+GhostRack installs beside Gigahost 0.1.7 or earlier: uninstall Gigahost (move
+Gigahost.app to the Trash) so the two apps never run at the same time.
 
 ## License
 

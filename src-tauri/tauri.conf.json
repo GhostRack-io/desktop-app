@@ -52,6 +52,12 @@
           "xdg-utils",
           "desktop-file-utils"
         ],
+        "conflicts": [
+          "gigahost"
+        ],
+        "replaces": [
+          "gigahost"
+        ],
         "desktopTemplate": "ghostrack.desktop.hbs",
         "files": {
           "/usr/share/applications/io.ghostrack.desktop.desktop": "io.ghostrack.desktop.desktop"

@@ -397,6 +397,17 @@ else:
         with self.assertRaisesRegex(ValueError, 'license'):
             verify.verify_tree(tree, manifest)
 
+    def test_linux_package_takes_over_the_former_package(self):
+        spec = importlib.util.spec_from_file_location('verify_linux', support.ROOT / 'scripts/verify-linux.py')
+        verify = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(verify)
+        deb = json.loads((support.ROOT / 'src-tauri/tauri.conf.json').read_text())['bundle']['linux']['deb']
+        fields = {'Conflicts': ', '.join(deb.get('conflicts') or []), 'Replaces': ', '.join(deb.get('replaces') or [])}
+        verify.verify_control(fields.get)
+        for name in fields:
+            with self.assertRaisesRegex(ValueError, name):
+                verify.verify_control({**fields, name: 'gigahost-desktop'}.get)
+
     def test_source_bundle_rejects_hash_and_pin_mismatch(self):
         bundle = self.root / 'bundle'
         bundle.mkdir()

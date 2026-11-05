@@ -3,6 +3,9 @@ GhostRack macOS preview (Apple Silicon and Intel, macOS 11 or later)
 Open the DMG, then drag GhostRack to Applications. Eject the DMG and open
 GhostRack from Applications. Ghost and the native Rust mmxwallet are included.
 
+If Gigahost is in Applications, quit it and move it to the Trash first.
+GhostRack keeps your keys and saved operations.
+
 This preview is ad-hoc signed, without an Apple Developer ID or notarization.
 macOS may block the first launch. If you trust the download source, try opening
 it, then use System Settings > Privacy & Security > Open Anyway and confirm.

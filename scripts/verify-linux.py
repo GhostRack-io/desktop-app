@@ -8,6 +8,8 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
+# Releases up to 0.1.7 were the gigahost package; apt removes it on upgrade.
+FORMER_PACKAGE = 'gigahost'
 
 
 def digest(path):
@@ -27,6 +29,13 @@ def verify_tree(tree, manifest, root=ROOT):
             raise ValueError('Packaged license differs: ' + source.name)
 
 
+def verify_control(field):
+    for name in ('Conflicts', 'Replaces'):
+        packages = [entry.split()[0] for entry in field(name).split(',') if entry.strip()]
+        if FORMER_PACKAGE not in packages:
+            raise ValueError('Debian package does not take over ' + FORMER_PACKAGE + ': ' + name)
+
+
 def verify(deb, appimage, manifest):
     with tempfile.TemporaryDirectory(prefix='desktop-package-check-') as temporary:
         temporary = Path(temporary)
@@ -35,6 +44,7 @@ def verify(deb, appimage, manifest):
         version = subprocess.check_output(['dpkg-deb', '--field', str(deb.resolve()), 'Version'], text=True).strip()
         if version != manifest['version']:
             raise ValueError('Debian package version differs')
+        verify_control(lambda name: subprocess.check_output(['dpkg-deb', '--field', str(deb.resolve()), name], text=True).strip())
         verify_tree(deb_tree, manifest)
         subprocess.run([str(appimage.resolve()), '--appimage-extract'], cwd=temporary, check=True, stdout=subprocess.DEVNULL)
         verify_tree(temporary / 'squashfs-root', manifest)

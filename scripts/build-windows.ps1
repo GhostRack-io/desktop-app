@@ -56,6 +56,9 @@ GhostRack $($config.version) for Windows 10/11 x64
 2. Open $installerName from the extracted folder.
 3. Follow the installer, then open GhostRack from the Start menu.
 
+If Gigahost is installed, uninstall it first in Settings > Apps. GhostRack
+keeps your keys and saved operations.
+
 The installer installs for your Windows user. Internet access is needed if
 Microsoft WebView2 must be installed. Ghost and mmxwallet are included.
 This preview is unsigned; Windows may show a publisher/SmartScreen warning.
