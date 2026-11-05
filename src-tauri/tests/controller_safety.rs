@@ -521,7 +521,7 @@ async fn account_keys_are_imported_through_ghost() {
     let stdin = || fs::read(f.root.path().join("ghost-stdin.txt")).unwrap();
     let tail = |args: Vec<String>| args[args.iter().position(|a| a == "key").unwrap()..].to_vec();
     let seed = f.settings.ghost_seed_file.clone().unwrap();
-    let line = "gigahost-account-seed-v1:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc";
+    let line = "ghostrack-account-seed-v1:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc";
     let imported = f
         .call(json!({"action":"import_account","file":null,"line":line}))
         .await

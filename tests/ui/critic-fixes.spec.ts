@@ -315,7 +315,7 @@ test('an account key is imported from a pasted line, and replacing the current o
   // Both or neither of a file and a line is refused before anything is sent.
   await dialog.getByRole('button',{name:'Import account key',exact:true}).click();
   await expect(dialog).toContainText('one of the two');
-  const line='gigahost-account-seed-v1:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc';
+  const line='ghostrack-account-seed-v1:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc';
   await dialog.getByLabel('Or paste the account key line').fill(line);
   await dialog.getByRole('button',{name:'Import account key',exact:true}).click();
   await expect(dialog).toContainText('Your current account key is kept.');
