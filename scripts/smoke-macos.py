@@ -126,7 +126,7 @@ def main():
             assert listed["schema_version"] == 1 and listed["wallets"] == []
             assert Path(listed["wallet_directory"]) == home / "wallets"
             # A saved offline configuration avoids public RPC/API use entirely.
-            state = home / "state/gigahost"
+            state = home / "state/ghostrack"
             state.mkdir(parents=True)
             (state / "settings.json").write_text(json.dumps({"rpc_url": "http://127.0.0.1:9",
                 "api_url": "http://127.0.0.1:9", "website_url": "http://127.0.0.1:9"}))

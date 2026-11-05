@@ -16,19 +16,19 @@ fn explorer_defaults_and_offline_key_creation() {
         let (seed, state) = match case.as_str() {
             "profile" => (
                 root.join("profile/.config/ghost/account.seed"),
-                root.join("profile/.local/state/gigahost"),
+                root.join("profile/.local/state/ghostrack"),
             ),
             "xdg" => (
                 root.join("config/ghost/account.seed"),
-                root.join("state/gigahost"),
+                root.join("state/ghostrack"),
             ),
             "home" => (
                 root.join("home/.config/ghost/account.seed"),
-                root.join("home/.local/state/gigahost"),
+                root.join("home/.local/state/ghostrack"),
             ),
             _ => (
                 root.join("roaming/ghost/account.seed"),
-                root.join("local/gigahost"),
+                root.join("local/ghostrack"),
             ),
         };
         assert_eq!(ghost_default().unwrap(), seed);

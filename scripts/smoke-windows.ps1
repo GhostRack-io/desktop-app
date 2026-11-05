@@ -72,7 +72,7 @@ try {
         $app.Refresh()
         if ($app.HasExited) { throw "Installed app exited during startup (exit $($app.ExitCode))." }
         if ($app.MainWindowHandle -ne [IntPtr]::Zero) { $windowSeen = $true }
-        $stateReady = Test-Path "$root/local/gigahost/transactions"
+        $stateReady = Test-Path "$root/local/ghostrack/transactions"
         if ($windowSeen -and $stateReady) { break }
     }
     if (-not $windowSeen) { throw 'Installed app did not create its window.' }

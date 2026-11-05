@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::Mutex;
@@ -352,31 +352,81 @@ pub fn ghost_default() -> Result<PathBuf> {
         )
     })
 }
+/// The app's state root for this start: `ghostrack` under the platform's
+/// state directory, or `gigahost` where an earlier release left one. A machine
+/// with the old root keeps using it, so pending operations and payments stay
+/// where they were journaled; nothing is ever moved, copied or merged.
 pub fn state_default() -> Result<PathBuf> {
+    state_root(&state_parent()?)
+}
+fn state_parent() -> Result<PathBuf> {
     if let Some(p) = std::env::var_os("XDG_STATE_HOME")
         .map(PathBuf::from)
         .filter(|p| p.is_absolute())
     {
-        return Ok(p.join("gigahost"));
+        return Ok(p);
     }
     let state = std::env::var_os("HOME")
         .map(PathBuf::from)
         .filter(|p| p.is_absolute())
-        .map(|p| p.join(".local/state/gigahost"));
+        .map(|p| p.join(".local/state"));
     #[cfg(windows)]
     let state = state.or_else(|| {
         std::env::var_os("LOCALAPPDATA")
             .map(PathBuf::from)
             .filter(|p| p.is_absolute())
-            .map(|p| p.join("gigahost"))
             .or_else(|| {
                 std::env::var_os("USERPROFILE")
                     .map(PathBuf::from)
                     .filter(|p| p.is_absolute())
-                    .map(|p| p.join(".local/state/gigahost"))
+                    .map(|p| p.join(".local/state"))
             })
     });
     state.ok_or_else(|| Failure::new("home_unavailable", "Your home directory is unavailable."))
+}
+/// Chooses one state root in `parent`; the app never writes both.
+/// - Only the old `gigahost` root exists: keep it for good on this machine.
+/// - Both exist: the one holding operation journals; the new one when neither
+///   does. When both do, refuse to start rather than hide pending operations.
+pub fn state_root(parent: &Path) -> Result<PathBuf> {
+    let new = parent.join("ghostrack");
+    let old = parent.join("gigahost");
+    if !present(&old)? {
+        return Ok(new);
+    }
+    if !present(&new)? {
+        return Ok(old);
+    }
+    match (journals(&new)?, journals(&old)?) {
+        (true, true) => Err(Failure::new(
+            "state_conflict",
+            format!(
+                "GhostRack found saved operations in both {} and {}. Keep the folder you use and move the other one elsewhere, then start GhostRack again.",
+                new.display(),
+                old.display()
+            ),
+        )),
+        (false, true) => Ok(old),
+        _ => Ok(new),
+    }
+}
+fn present(path: &Path) -> Result<bool> {
+    // A dangling symlink still names a root someone made; never pass it by.
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(e.into()),
+    }
+}
+fn journals(root: &Path) -> Result<bool> {
+    if present(&root.join("operations.json"))? {
+        return Ok(true);
+    }
+    match fs::read_dir(root.join("transactions")) {
+        Ok(mut entries) => Ok(entries.next().is_some()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(e.into()),
+    }
 }
 /// gigahost.cloud is the website's former name and redirects to ghostrack.io
 /// (2026-11-03): a link on either belongs to a website configured as either.

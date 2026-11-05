@@ -94,8 +94,12 @@ the CLIs' user-profile locations. Selected key paths are independent. Key creati
 and export never overwrite existing files. A wallet derivation passphrase changes
 its keys and does not encrypt the wallet file. Keep safe backups.
 
-Settings and operation state use `$XDG_STATE_HOME/gigahost` or
-`$HOME/.local/state/gigahost`; on Windows, `%LOCALAPPDATA%\gigahost`. Keys and
+Settings and operation state use `$XDG_STATE_HOME/ghostrack` or
+`$HOME/.local/state/ghostrack`; on Windows, `%LOCALAPPDATA%\ghostrack`. A
+computer that already has the `gigahost` folder there from version 0.1.7 or
+earlier keeps using it, so pending operations stay where they were saved; the
+app never moves or merges the two. If both folders hold saved operations, the
+app does not start until one of them is moved elsewhere. Keys and
 state remain outside the install directory. Uncertain transfers retain their
 reviewed bytes and reconcile before retrying. Background refreshes never submit
 payments. The browser preview cannot sign account or wallet operations.

@@ -16,15 +16,15 @@ fn home_defaults_and_offline_key_creation() {
         let (seed, state) = match case.as_str() {
             "xdg" => (
                 root.join("config/ghost/account.seed"),
-                root.join("state/gigahost"),
+                root.join("state/ghostrack"),
             ),
             "explicit" => (
                 root.join("explicit.seed"),
-                home.join(".local/state/gigahost"),
+                home.join(".local/state/ghostrack"),
             ),
             _ => (
                 home.join(".config/ghost/account.seed"),
-                home.join(".local/state/gigahost"),
+                home.join(".local/state/ghostrack"),
             ),
         };
         assert_eq!(ghost_default().unwrap(), seed);
