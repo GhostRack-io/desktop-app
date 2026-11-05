@@ -1,7 +1,7 @@
 {
   "name": "ghostrack-desktop",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "scripts": {
     "assets": "node scripts/assets.mjs",
