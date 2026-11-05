@@ -106,8 +106,9 @@ never submit payments. The browser preview cannot sign account or wallet
 operations.
 
 The Debian package replaces the former `gigahost` package. On Windows and macOS
-GhostRack installs beside Gigahost 0.1.7 or earlier: uninstall Gigahost (move
-Gigahost.app to the Trash) so the two apps never run at the same time.
+GhostRack installs beside Gigahost 0.1.7 or earlier. Once GhostRack has started
+for the first time, it is best to remove Gigahost (on macOS, move Gigahost.app to
+the Trash), so the two apps never run at the same time.
 
 ## License
 
