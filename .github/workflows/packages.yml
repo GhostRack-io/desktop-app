@@ -309,6 +309,9 @@ jobs:
           set -euo pipefail
           version=$(python3 -c 'import json; print(json.load(open("src-tauri/tauri.conf.json"))["version"])')
           revision=$(git rev-parse HEAD)
+          # release-notes/<version>.md, when present, becomes the release description.
+          notes=()
+          if [[ -f "release-notes/$version.md" ]]; then notes=(--notes-file "release-notes/$version.md"); fi
           python3 scripts/publish-github-release.py --windows-dir artifacts/downloads/windows \
             --linux-dir artifacts/downloads/linux --macos-dir artifacts/downloads/macos --version "$version" \
-            --revision "$revision" --repository "$RELEASE_REPOSITORY"
+            --revision "$revision" --repository "$RELEASE_REPOSITORY" "${notes[@]}"
