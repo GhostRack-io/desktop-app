@@ -1157,11 +1157,6 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 .nowrap{white-space:nowrap}
 
 .in-text a:not(.btn){text-decoration-line:underline}
-
-.phone-only{display:none}
-@media (pointer:coarse) and (hover:none){
-@media not all and (min-width:40em){.act{display:none !important}.phone-only{display:revert}}
-}
 @media (prefers-reduced-motion:reduce){
   *,::before,::after{animation:none !important;transition:none !important}
 }
