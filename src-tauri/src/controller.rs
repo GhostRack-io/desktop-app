@@ -385,17 +385,23 @@ fn state_parent() -> Result<PathBuf> {
     state.ok_or_else(|| Failure::new("home_unavailable", "Your home directory is unavailable."))
 }
 /// Chooses one state root in `parent`; the app never writes both.
-/// - Only the old `gigahost` root exists: keep it for good on this machine.
-/// - Both exist: the one holding operation journals; the new one when neither
+/// - Only the old `gigahost` root holds state: keep it for good on this machine.
+/// - Both do: the one holding operation journals; the new one when neither
 ///   does. When both do, refuse to start rather than hide pending operations.
 pub fn state_root(parent: &Path) -> Result<PathBuf> {
     let new = parent.join("ghostrack");
     let old = parent.join("gigahost");
-    if !present(&old)? {
+    if !holds_state(&old)? {
         return Ok(new);
     }
-    if !present(&new)? {
+    if !holds_state(&new)? {
         return Ok(old);
+    }
+    // One folder under both names, renamed by hand and linked back.
+    if let (Ok(a), Ok(b)) = (fs::canonicalize(&new), fs::canonicalize(&old))
+        && a == b
+    {
+        return Ok(new);
     }
     match (journals(&new)?, journals(&old)?) {
         (true, true) => Err(Failure::new(
@@ -410,8 +416,26 @@ pub fn state_root(parent: &Path) -> Result<PathBuf> {
         _ => Ok(new),
     }
 }
+/// Whether `root` holds what a start leaves there: settings, journals or the
+/// transactions folder every start creates. The folder alone does not count,
+/// because Windows installs each release into a folder named like its root.
+fn holds_state(root: &Path) -> Result<bool> {
+    match fs::metadata(root) {
+        Ok(m) if m.is_dir() => {
+            for name in ["settings.json", "operations.json", "transactions"] {
+                if present(&root.join(name))? {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        }
+        Ok(_) => Ok(false),
+        // A dangling symlink still names a root someone made; never pass it by.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => present(root),
+        Err(e) => Err(e.into()),
+    }
+}
 fn present(path: &Path) -> Result<bool> {
-    // A dangling symlink still names a root someone made; never pass it by.
     match fs::symlink_metadata(path) {
         Ok(_) => Ok(true),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),

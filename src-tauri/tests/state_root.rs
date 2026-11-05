@@ -12,6 +12,80 @@ fn journal(root: &Path) {
     fs::write(root.join("operations.json"), PENDING).unwrap();
 }
 
+/// What the Windows installer puts in the folder it names after the product.
+fn install(folder: &Path, exe: &str) {
+    fs::create_dir_all(folder.join("licenses")).unwrap();
+    for file in [exe, "uninstall.exe", "licenses/LICENSE"] {
+        fs::write(folder.join(file), "").unwrap();
+    }
+}
+
+#[test]
+fn an_install_folder_under_either_name_is_not_a_root() {
+    // 0.1.7 with settings only, then 0.1.8 installed beside it.
+    let parent = tempfile::tempdir().unwrap();
+    install(&parent.path().join("ghostrack"), "ghostrack-desktop.exe");
+    install(&parent.path().join("gigahost"), "gigahost-desktop.exe");
+    fs::write(parent.path().join("gigahost/settings.json"), "{}").unwrap();
+    assert_eq!(
+        state_root(parent.path()).unwrap(),
+        parent.path().join("gigahost")
+    );
+    // The same with 0.1.7's pending payment.
+    journal(&parent.path().join("gigahost"));
+    assert_eq!(
+        state_root(parent.path()).unwrap(),
+        parent.path().join("gigahost")
+    );
+    // 0.1.7 installed but never started: nothing to keep there.
+    let parent = tempfile::tempdir().unwrap();
+    install(&parent.path().join("ghostrack"), "ghostrack-desktop.exe");
+    install(&parent.path().join("gigahost"), "gigahost-desktop.exe");
+    assert_eq!(
+        state_root(parent.path()).unwrap(),
+        parent.path().join("ghostrack")
+    );
+    // Once a start used the new name, the store's folders mark it.
+    Store::new(parent.path().join("ghostrack")).unwrap();
+    fs::write(parent.path().join("gigahost/settings.json"), "{}").unwrap();
+    assert_eq!(
+        state_root(parent.path()).unwrap(),
+        parent.path().join("ghostrack")
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn one_folder_under_both_names_is_one_root() {
+    use std::os::unix::fs::symlink;
+    // Renamed by hand and linked back, or the other way round.
+    for (real, link) in [("ghostrack", "gigahost"), ("gigahost", "ghostrack")] {
+        let parent = tempfile::tempdir().unwrap();
+        journal(&parent.path().join(real));
+        symlink(real, parent.path().join(link)).unwrap();
+        let root = state_root(parent.path()).unwrap();
+        assert_eq!(
+            fs::canonicalize(&root).unwrap(),
+            fs::canonicalize(parent.path().join(real)).unwrap(),
+            "{link} -> {real}"
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn a_dangling_old_root_is_never_passed_by() {
+    // A root moved to a drive that is not mounted: starting fresh would hide
+    // its journals, so the app uses it and fails rather than start empty.
+    let parent = tempfile::tempdir().unwrap();
+    std::os::unix::fs::symlink("/nonexistent/gigahost", parent.path().join("gigahost")).unwrap();
+    assert_eq!(
+        state_root(parent.path()).unwrap(),
+        parent.path().join("gigahost")
+    );
+    assert!(Store::new(parent.path().join("gigahost")).is_err());
+}
+
 #[test]
 fn a_fresh_machine_uses_the_new_root() {
     let parent = tempfile::tempdir().unwrap();
@@ -78,7 +152,7 @@ fn with_both_roots_the_one_holding_journals_wins() {
     }
     // A reviewed transaction file alone is a journal too.
     let parent = tempfile::tempdir().unwrap();
-    fs::create_dir_all(parent.path().join("ghostrack")).unwrap();
+    fs::create_dir_all(parent.path().join("ghostrack/transactions")).unwrap();
     fs::create_dir_all(parent.path().join("gigahost/transactions")).unwrap();
     fs::write(
         parent
@@ -115,7 +189,13 @@ fn the_platform_default_applies_the_rule() {
         assert_eq!(state_default().unwrap(), Path::new(&parent).join(expected));
         return;
     }
-    for legacy in [false, true] {
+    // The upgrade case is Windows' default: each release installs into a
+    // folder named like its state root, so the new name exists from the start.
+    for (case, expected) in [
+        ("fresh", "ghostrack"),
+        ("legacy", "gigahost"),
+        ("upgrade", "gigahost"),
+    ] {
         let root = tempfile::tempdir().unwrap();
         let home = root.path().join("home");
         let mut child = Command::new(std::env::current_exe().unwrap());
@@ -130,13 +210,18 @@ fn the_platform_default_applies_the_rule() {
             child.env("HOME", &home);
             home.join(".local/state")
         };
-        if legacy {
-            journal(&parent.join("gigahost"));
+        match case {
+            "legacy" => journal(&parent.join("gigahost")),
+            "upgrade" => {
+                install(&parent.join("ghostrack"), "ghostrack-desktop.exe");
+                install(&parent.join("gigahost"), "gigahost-desktop.exe");
+                fs::write(parent.join("gigahost/settings.json"), "{}").unwrap();
+            }
+            _ => {}
         }
-        child.env("GHOSTRACK_TEST_STATE_PARENT", &parent).env(
-            "GHOSTRACK_TEST_STATE_EXPECTED",
-            if legacy { "gigahost" } else { "ghostrack" },
-        );
-        assert!(child.status().unwrap().success(), "legacy {legacy}");
+        child
+            .env("GHOSTRACK_TEST_STATE_PARENT", &parent)
+            .env("GHOSTRACK_TEST_STATE_EXPECTED", expected);
+        assert!(child.status().unwrap().success(), "{case}");
     }
 }
