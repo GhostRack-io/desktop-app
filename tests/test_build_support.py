@@ -402,11 +402,35 @@ else:
         verify = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(verify)
         deb = json.loads((support.ROOT / 'src-tauri/tauri.conf.json').read_text())['bundle']['linux']['deb']
-        fields = {'Conflicts': ', '.join(deb.get('conflicts') or []), 'Replaces': ', '.join(deb.get('replaces') or [])}
+        fields = {'Package': support.DEB_PACKAGE, 'Conflicts': ', '.join(deb.get('conflicts') or []), 'Replaces': ', '.join(deb.get('replaces') or [])}
         verify.verify_control(fields.get)
-        for name in fields:
+        for name in ('Conflicts', 'Replaces'):
             with self.assertRaisesRegex(ValueError, name):
                 verify.verify_control({**fields, name: 'gigahost-desktop'}.get)
+        # Tauri's own name for productName GhostRack.
+        with self.assertRaisesRegex(ValueError, 'package name'):
+            verify.verify_control({**fields, 'Package': 'ghost-rack'}.get)
+
+    @unittest.skipUnless(shutil.which('dpkg-deb'), 'dpkg-deb unavailable')
+    def test_debian_package_is_renamed_with_the_same_files(self):
+        tree = self.root / 'deb'
+        (tree / 'DEBIAN').mkdir(parents=True)
+        (tree / 'DEBIAN/control').write_text('Package: ghost-rack\nVersion: 0.1.8\nArchitecture: amd64\n'
+                                             'Maintainer: ghostrack\nConflicts: gigahost\nDescription: Test\n')
+        (tree / 'usr/bin').mkdir(parents=True)
+        (tree / 'usr/bin/ghostrack-desktop').write_bytes(b'desktop')
+        (tree / 'usr/bin/ghostrack-desktop').chmod(0o755)
+        bundle = self.root / 'bundle'
+        bundle.mkdir()
+        deb = bundle / 'GhostRack_0.1.8_amd64.deb'
+        subprocess.run(['dpkg-deb', '--root-owner-group', '--build', str(tree), str(deb)], check=True, stdout=subprocess.DEVNULL)
+        before = support.deb_contents(deb)
+        support.deb_package(deb)
+        field = lambda name: subprocess.check_output(['dpkg-deb', '--field', str(deb), name], text=True).strip()
+        self.assertEqual(field('Package'), 'ghostrack')
+        self.assertEqual(field('Conflicts'), 'gigahost')
+        self.assertEqual(support.deb_contents(deb), before)
+        self.assertEqual([path.name for path in bundle.iterdir()], [deb.name])
 
     def test_source_bundle_rejects_hash_and_pin_mismatch(self):
         bundle = self.root / 'bundle'

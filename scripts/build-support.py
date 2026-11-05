@@ -15,6 +15,8 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 REPOSITORIES = {'ghost': 'https://github.com/GhostRack-io/ghost-cli.git',
                 'mmxwallet': 'https://github.com/mmx-network/mmx-rust-node.git'}
+# Tauri names the Debian package after productName in kebab case (ghost-rack).
+DEB_PACKAGE = 'ghostrack'
 
 
 def pins(root=ROOT):
@@ -183,16 +185,52 @@ def manifest(target, build_root):
     return value
 
 
+def deb_contents(deb):
+    entries = []
+    for line in subprocess.check_output(['dpkg-deb', '--contents', str(deb)], text=True).splitlines():
+        mode, owner, size, _date, _time, path = line.split(None, 5)
+        path = path.removeprefix('./').rstrip('/')
+        if path not in ('', '.'):
+            # Tauri's archive lists root numerically, dpkg-deb's by name.
+            entries.append((path, mode, 'root' if owner in ('0/0', 'root/root') else owner, size))
+    return sorted(entries)
+
+
+def deb_package(deb, name=DEB_PACKAGE):
+    """Rename the Debian package in place; the installed files stay the same."""
+    deb = deb.resolve()
+    with tempfile.TemporaryDirectory(prefix='.deb-package-', dir=deb.parent) as temporary:
+        tree = Path(temporary) / 'tree'
+        subprocess.run(['dpkg-deb', '--raw-extract', str(deb), str(tree)], check=True)
+        control = tree / 'DEBIAN/control'
+        text, count = re.subn(r'^Package: .*$', 'Package: ' + name, control.read_text(), count=1, flags=re.M)
+        if count != 1:
+            raise ValueError('Debian control has no Package field')
+        control.write_text(text)
+        (tree / 'DEBIAN').chmod(0o755)
+        rebuilt = Path(temporary) / deb.name
+        subprocess.run(['dpkg-deb', '--root-owner-group', '-Zgzip', '--build', str(tree), str(rebuilt)],
+                       check=True, stdout=subprocess.DEVNULL)
+        if deb_contents(rebuilt) != deb_contents(deb):
+            raise ValueError('Debian package contents changed while renaming')
+        os.replace(rebuilt, deb)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['components', 'manifest', 'version', 'desktop-identity'])
+    parser.add_argument('action', choices=['components', 'manifest', 'version', 'desktop-identity', 'deb-package'])
     parser.add_argument('--target')
+    parser.add_argument('--deb', type=Path)
     parser.add_argument('--build-root', type=Path, default=ROOT / 'artifacts/build')
     args = parser.parse_args()
     if args.action == 'version':
         print(version())
     elif args.action == 'desktop-identity':
         print(json.dumps(desktop_identity()))
+    elif args.action == 'deb-package':
+        if not args.deb:
+            raise ValueError('Debian package path missing')
+        deb_package(args.deb)
     else:
         if not args.target or not re.fullmatch('[a-zA-Z0-9_-]+', args.target):
             raise ValueError('Invalid build target')

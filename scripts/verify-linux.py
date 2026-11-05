@@ -10,6 +10,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 # Releases up to 0.1.7 were the gigahost package; apt removes it on upgrade.
 FORMER_PACKAGE = 'gigahost'
+PACKAGE = 'ghostrack'
 
 
 def digest(path):
@@ -30,6 +31,8 @@ def verify_tree(tree, manifest, root=ROOT):
 
 
 def verify_control(field):
+    if field('Package') != PACKAGE:
+        raise ValueError('Debian package name differs: ' + field('Package'))
     for name in ('Conflicts', 'Replaces'):
         packages = [entry.split()[0] for entry in field(name).split(',') if entry.strip()]
         if FORMER_PACKAGE not in packages:

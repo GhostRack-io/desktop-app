@@ -22,6 +22,7 @@ cd -- "$desktop"
 npm ci
 npm run icons
 CARGO_TARGET_DIR="$build_root/desktop" npm run tauri build -- --bundles deb,appimage -- --locked
+python3 "$desktop/scripts/build-support.py" deb-package --deb "$build_root/desktop/release/bundle/deb/GhostRack_${version}_amd64.deb"
 python3 "$desktop/scripts/verify-linux.py" \
     "$build_root/desktop/release/bundle/deb/GhostRack_${version}_amd64.deb" \
     "$build_root/desktop/release/bundle/appimage/GhostRack_${version}_amd64.AppImage" \
