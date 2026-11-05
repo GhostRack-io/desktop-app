@@ -6,7 +6,13 @@ use ghostrack_desktop::{
     process::Runner,
     store::{Settings, Store},
 };
-use std::{fs, path::PathBuf, process::Command};
+use serde_json::Value;
+use std::{
+    fs,
+    os::unix::fs::PermissionsExt,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 #[test]
 fn home_defaults_and_offline_key_creation() {
@@ -149,4 +155,126 @@ fn home_defaults_and_offline_key_creation() {
             "Unix defaults case {case}"
         );
     }
+}
+
+/// The shared vectors' "sevens" seed, 32 bytes of 7, as an account key
+/// line has it after the label, and the key ID derived from it.
+const SEVENS: &str = "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc";
+const SEVENS_KEY_ID: &str = "XTmMRZrEYsqsLzH8";
+const LABEL: &str = "ghostrack-account-seed-v1:";
+const OLD_LABEL: &str = "gigahost-account-seed-v1:";
+
+/// Settings that select `seed` as the account key file, offline.
+fn selecting(seed: &Path) -> Request {
+    Request::SaveSettings {
+        settings: Settings {
+            ghost_seed_file: Some(seed.to_path_buf()),
+            rpc_url: "http://127.0.0.1:9".into(),
+            api_url: "http://127.0.0.1:9".into(),
+            website_url: "http://127.0.0.1:9".into(),
+            ..Settings::default()
+        },
+    }
+}
+
+async fn inspect(runner: &Runner, seed: &Path) -> Value {
+    runner
+        .run(
+            false,
+            &[
+                "--compact".into(),
+                "--seed-file".into(),
+                seed.to_string_lossy().into_owned(),
+                "key".into(),
+                "inspect".into(),
+            ],
+            None,
+            false,
+        )
+        .await
+        .unwrap()
+}
+
+/// The bundled Ghost writes an account key's line with the GhostRack label
+/// and reads a line under it or under the label of keys saved before the
+/// rename, pasted or in a file, as one and the same key.
+#[test]
+fn account_keys_under_either_label_are_one_key() {
+    // As above: only native CI, or a local run, supplies a built Ghost.
+    let Some(ghost) = std::env::var_os("GHOSTRACK_TEST_GHOST") else {
+        return;
+    };
+    let root = tempfile::tempdir().unwrap();
+    let runner = Runner {
+        ghost: PathBuf::from(&ghost),
+        wallet: PathBuf::from(&ghost),
+    };
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let controller = Controller::new(root.path().join("state"), runner.clone()).unwrap();
+        let created = root.path().join("created.seed");
+        controller.dispatch(selecting(&created)).await.unwrap();
+        controller
+            .dispatch(Request::CreateAccount { file: None })
+            .await
+            .unwrap();
+        let text = fs::read_to_string(&created).unwrap();
+        assert!(text.starts_with(LABEL), "a new key has the GhostRack label");
+        assert_eq!(text.len(), LABEL.len() + SEVENS.len() + 1);
+
+        let mut keys = vec![];
+        for (at, (label, other)) in [(LABEL, OLD_LABEL), (OLD_LABEL, LABEL)]
+            .into_iter()
+            .enumerate()
+        {
+            let pasted = root.path().join(format!("pasted-{at}.seed"));
+            controller.dispatch(selecting(&pasted)).await.unwrap();
+            let imported = controller
+                .dispatch(Request::ImportAccount {
+                    file: None,
+                    line: Some(format!("{label}{SEVENS}")),
+                    replace: false,
+                })
+                .await
+                .unwrap();
+            assert_eq!(imported["result"], "imported", "{label}");
+            assert_eq!(
+                fs::read_to_string(&pasted).unwrap(),
+                format!("{LABEL}{SEVENS}\n")
+            );
+            keys.push(imported["keys"].clone());
+            // The line under the other label is the key the file holds.
+            let again = controller
+                .dispatch(Request::ImportAccount {
+                    file: None,
+                    line: Some(format!("{other}{SEVENS}")),
+                    replace: false,
+                })
+                .await
+                .unwrap();
+            assert_eq!(again["result"], "already_imported", "{label}");
+
+            // A downloaded account.seed or a recovery file is read as it is.
+            let download = root.path().join(format!("download-{at}.seed"));
+            fs::write(&download, format!("{label}{SEVENS}\n")).unwrap();
+            fs::set_permissions(&download, fs::Permissions::from_mode(0o600)).unwrap();
+            keys.push(inspect(&runner, &download).await);
+            let from_file = root.path().join(format!("from-file-{at}.seed"));
+            controller.dispatch(selecting(&from_file)).await.unwrap();
+            let imported = controller
+                .dispatch(Request::ImportAccount {
+                    file: Some(download),
+                    line: None,
+                    replace: false,
+                })
+                .await
+                .unwrap();
+            assert_eq!(imported["result"], "imported", "{label}");
+            keys.push(imported["keys"].clone());
+            keys.push(inspect(&runner, &from_file).await);
+        }
+        assert_eq!(keys[0]["authentication_key_id"], SEVENS_KEY_ID);
+        for key in &keys {
+            assert_eq!(*key, keys[0]);
+        }
+    });
 }

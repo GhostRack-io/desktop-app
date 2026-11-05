@@ -2,7 +2,7 @@
   "schema": 1,
   "ghost": {
     "repository": "https://github.com/GhostRack-io/ghost-cli.git",
-    "revision": "87405888d826792aacb2a618972fae29e806c717",
+    "revision": "412f28c50a9bb6acd7de48605c6d28410aaf6463",
     "package": "ghost",
     "binary": "ghost"
   },
