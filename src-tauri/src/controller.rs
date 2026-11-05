@@ -34,7 +34,7 @@ pub enum Request {
     },
     /// Puts an account key made elsewhere in the app's account key file
     /// (`ghost key import`): from `file`, or from `line`, the pasted
-    /// `gigahost-account-seed-v1:…` line, which goes to `ghost` on its
+    /// `ghostrack-account-seed-v1:…` line, which goes to `ghost` on its
     /// standard input and nowhere else. Exactly one of the two.
     ImportAccount {
         file: Option<PathBuf>,
@@ -267,7 +267,7 @@ pub fn import_account_args(
             if line.trim().is_empty() || line.len() > MAX_ACCOUNT_KEY_LINE {
                 return Err(Failure::new(
                     "invalid_input",
-                    "Paste the account key line, which begins with gigahost-account-seed-v1:.",
+                    "Paste the account key line, which begins with ghostrack-account-seed-v1:.",
                 ));
             }
             Some(Secret::Line(line))
