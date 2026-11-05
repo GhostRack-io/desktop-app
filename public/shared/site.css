@@ -610,10 +610,7 @@ input[data-type="dollars"]{text-align:end}
 .choice__input:disabled+.choice__label{border-color:var(--color-border);border-style:dashed;background:var(--color-transparent);box-shadow:none;color:var(--color-text-muted);cursor:not-allowed}
 .choice__title{font-weight:var(--weight-bold)}
 
-.choice>.choice__label,.choice>.choice__version{grid-area:1/1}
-.choice__label--versions{padding-block-end:calc(var(--space-4) + var(--control-height-sm) + var(--space-2))}
-.choice__input:checked+.choice__label--versions{padding-block-end:calc(var(--space-4) + var(--control-height-sm) + var(--space-2) - var(--border))}
-.field .choice__version{--field-pad:.5rem;--chevron:.3rem;min-block-size:var(--control-height-sm);padding-block:0;font-size:var(--text-sm);z-index:1;align-self:end;justify-self:start;inline-size:auto;max-inline-size:calc(100% - 2.875rem - var(--space-4));margin:0 var(--space-4) var(--space-4) 2.875rem}
+.field .choice__version{inline-size:auto;min-inline-size:8rem;max-inline-size:100%;justify-self:start}
 
 .os-icon{vertical-align:-.15em}
 .os-mono-dark path{fill:var(--os-mono)}
