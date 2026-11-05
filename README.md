@@ -95,11 +95,10 @@ and export never overwrite existing files. A wallet derivation passphrase change
 its keys and does not encrypt the wallet file. Keep safe backups.
 
 Settings and operation state use `$XDG_STATE_HOME/ghostrack` or
-`$HOME/.local/state/ghostrack`; on Windows, `%LOCALAPPDATA%\ghostrack`. A
-computer where version 0.1.7 or earlier saved settings or operations in the
-`gigahost` folder there keeps using it, so pending operations stay where they
-were saved; the app never moves or merges the two. If both folders hold saved
-operations, the app does not start until one of them is moved elsewhere. Keys
+`$HOME/.local/state/ghostrack`; on Windows, `%LOCALAPPDATA%\ghostrack`. Where
+version 0.1.7 or earlier left a `gigahost` folder with saved state, the app keeps
+using it and never moves or merges the two. If both folders hold saved
+operations, the app does not start until one is moved elsewhere. Keys
 remain outside the install directory and uninstalling keeps the state; on
 Windows GhostRack installs into its state folder by default. Uncertain transfers
 retain their reviewed bytes and reconcile before retrying. Background refreshes
