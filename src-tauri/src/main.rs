@@ -103,6 +103,27 @@ fn register_linux(app: &tauri::App) -> std::result::Result<(), Box<dyn std::erro
     }
     Ok(())
 }
+/// A start that cannot open its state shows why in a dialog: a release build
+/// launched from a menu, Finder or the Start menu has no terminal for it.
+fn refuse_start(failure: &Failure) -> ! {
+    eprintln!("{}", failure.message);
+    // rfd waits for a GTK thread that never starts without a display.
+    #[cfg(target_os = "linux")]
+    let display = ["DISPLAY", "WAYLAND_DISPLAY"]
+        .iter()
+        .any(|name| std::env::var_os(name).is_some_and(|v| !v.is_empty()));
+    #[cfg(not(target_os = "linux"))]
+    let display = true;
+    if display {
+        rfd::MessageDialog::new()
+            .set_level(rfd::MessageLevel::Error)
+            .set_title("GhostRack")
+            .set_description(&failure.message)
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show();
+    }
+    std::process::exit(1);
+}
 fn main() {
     #[cfg(target_os = "linux")]
     {
@@ -111,6 +132,11 @@ fn main() {
         glib::set_prgname(Some(ghostrack_desktop::linux::APP_ID));
         glib::set_application_name("GhostRack");
     }
+    // The state root is decided before the window exists, so a refusal
+    // (journals under both names) reaches the user.
+    let controller = state_default()
+        .and_then(|root| Controller::new(root, Runner::bundled()?))
+        .unwrap_or_else(|failure| refuse_start(&failure));
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             // The plugin's deep-link feature forwards URLs to on_open_url.
@@ -132,11 +158,6 @@ fn main() {
                 .build(),
         )
         .setup(|app| {
-            let controller = Controller::new(
-                state_default().map_err(|e| e.message)?,
-                Runner::bundled().map_err(|e| e.message)?,
-            )
-            .map_err(|e| e.message)?;
             app.manage(controller);
             #[cfg(target_os = "linux")]
             if register_linux(app).is_err() {

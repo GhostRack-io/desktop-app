@@ -1375,6 +1375,7 @@ version = "0.1.8"
 dependencies = [
  "glib",
  "hex",
+ "rfd",
  "serde",
  "serde_json",
  "sha2",
