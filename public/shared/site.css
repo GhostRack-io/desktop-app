@@ -613,6 +613,9 @@ input[data-type="dollars"]{text-align:end}
 .field .choice__version{inline-size:auto;min-inline-size:8rem;max-inline-size:100%;justify-self:start}
 
 .os-icon{vertical-align:-.15em}
+
+.choice__title--icon{padding-inline-end:1.75rem}
+.choice__title .os-icon{position:absolute;inset-block-start:var(--space-4);inset-inline-end:var(--space-4);inline-size:1.25rem;block-size:1.25rem}
 .os-mono-dark path{fill:var(--os-mono)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--os-mono:currentColor}}
 :root[data-theme="dark"]{--os-mono:currentColor}
