@@ -1336,7 +1336,7 @@ form[data-action="offering.rent"]{display:flex}
 
 .offering-places__facts{display:block}
 
-.alias{white-space:nowrap}
+.alias{white-space:nowrap;font-family:var(--font-mono);font-size:max(.875em,.75rem);color:var(--color-text-muted)}
 
 .about-hero{position:relative;row-gap:var(--space-5);padding-block:clamp(1.5rem,.5rem + 3vw,3.5rem) var(--space-4)}
 .about-hero .page-header__text{gap:var(--space-5)}
