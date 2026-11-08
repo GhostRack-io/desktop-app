@@ -585,3 +585,93 @@ async fn account_keys_are_imported_through_ghost() {
         .is_err()
     );
 }
+
+/// A payout request carries the reviewed MMX atoms as an exact decimal and
+/// the review's own idempotency key; a review saved in dollars by the earlier
+/// app is never sent, can always be discarded and never blocks a new review.
+#[tokio::test]
+async fn payouts_are_requested_in_mmx_and_dollar_reviews_are_never_sent() {
+    let f = Fixture::new();
+    let address = "mmx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdgytev";
+    f.scenario(json!({"provider_balance":{
+        "pending_payout_microusd":"0","available_payout_microusd":"0","held_microusd":"0",
+        "on_the_way_microusd":"0","sla_settlement_pending":true,
+        "available_payout_mmx_atomic":"20000000","on_the_way_mmx_atomic":"0",
+        "waiting_for_exchange_rate":false,"payout_address":address}}));
+    let dollar = |state: &str| {
+        let id = uuid::Uuid::new_v4().to_string();
+        let op = serde_json::from_value(json!({"id":id,"kind":"payout","state":state,"created_at":1,"wallet_file":null,"ghost_seed_file":f.settings.ghost_seed_file,"rpc_url":f.settings.rpc_url,"api_url":f.settings.api_url,"transaction_id":null,"digest":null,"review":{"account_alias":"gh-test","previous_address":address,"address":address,"amount_microusd":"40010000"},"intent_id":null,"replacement_seed_file":null,"account_memo":"old-memo","account_epoch":null,"job_id":null})).unwrap();
+        f.controller.store.put(op).unwrap();
+        id
+    };
+    let old = dollar("prepared");
+    let sent = dollar("uncertain");
+    let refused = f
+        .call(json!({"action":"confirm_payout","id":old}))
+        .await
+        .unwrap_err();
+    assert_eq!(refused.code, "payout_review_outdated");
+    assert!(refused.message.starts_with("This review is in dollars."));
+    let refused = f
+        .call(json!({"action":"confirm_payout","id":sent}))
+        .await
+        .unwrap_err();
+    assert_eq!(refused.code, "payout_review_outdated");
+    assert!(
+        refused
+            .message
+            .starts_with("This saved request is in dollars.")
+    );
+    assert!(!f.root.path().join("ghost-args.json").exists());
+    // They never block a new review in MMX, which an outage does not hold.
+    let over = f
+        .call(json!({"action":"prepare_payout","amount":"20.000001"}))
+        .await
+        .unwrap_err();
+    assert_eq!(over.code, "invalid_payout_amount");
+    assert!(over.message.contains("no more than 20 MMX"));
+    let review = f
+        .call(json!({"action":"prepare_payout","amount":"12.5"}))
+        .await
+        .unwrap();
+    assert_eq!(review["review"]["amount_mmx_atomic"], "12500000");
+    assert!(review["review"]["amount_microusd"].is_null());
+    f.call(json!({"action":"confirm_payout","id":review["id"]}))
+        .await
+        .unwrap();
+    let args: Vec<String> =
+        serde_json::from_slice(&fs::read(f.root.path().join("ghost-args.json")).unwrap()).unwrap();
+    let at = args.iter().position(|a| a == "provider").unwrap();
+    assert_eq!(
+        args[at..at + 6],
+        [
+            "provider",
+            "payout",
+            "--amount",
+            "12.5",
+            "--idempotency-key",
+            review["id"].as_str().unwrap()
+        ]
+    );
+    // A dollar review is discarded in every state.
+    for id in [old, sent] {
+        let discarded = f
+            .call(json!({"action":"discard_payout","id":id}))
+            .await
+            .unwrap();
+        assert_eq!(discarded["state"], "discarded");
+    }
+    // An MMX review that may have been sent keeps today's rule.
+    let mut mmx = f
+        .controller
+        .store
+        .get(review["id"].as_str().unwrap())
+        .unwrap();
+    mmx.state = "uncertain".into();
+    f.controller.store.put(mmx.clone()).unwrap();
+    let kept = f
+        .call(json!({"action":"discard_payout","id":mmx.id}))
+        .await
+        .unwrap_err();
+    assert_eq!(kept.code, "payout_state");
+}

@@ -35,6 +35,10 @@ if 'key' in args and 'import' in args:
     if scenario.get('import_exists') and '--replace' not in args: fail('account_key_exists')
     replaced = '--replace' in args and scenario.get('import_exists')
     reply({'seed_file':option('--seed-file'),'result':'replaced' if replaced else 'imported','keys':{'deposit_memo':'old-memo'},'account':None,'account_note':'this key has no account yet',**({'replaced_file':option('--seed-file')+'.replaced-20261019T120000Z'} if replaced else {})})
+if 'provider' in args and 'balance' in args: reply(scenario['provider_balance'])
+if 'provider' in args and 'payout' in args:
+    Path(__file__).with_name('ghost-args.json').write_text(json.dumps(args))
+    reply({'payout_id':'d991d038-bbfc-4a9b-82dd-0d1cf33281b7','amount_microusd':'0','amount_mmx_atomic':'12500000','state':'queued'})
 if 'inspect' in args:
     memo = scenario.get('new_memo','old-memo') if option('--seed-file') == scenario.get('replacement_seed') else 'old-memo'
     reply({'recovery_key_fingerprint':scenario.get('recovery_fingerprint','older-key'), 'deposit_memo':memo})

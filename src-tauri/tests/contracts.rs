@@ -2,7 +2,8 @@ use ghostrack_desktop::controller::{
     approval_id, claim_link, github_link_args, github_signup_args, github_status_args,
     github_unlink_args, restore_charge, validate_url,
 };
-use ghostrack_desktop::payouts::{amount_microusd, valid_address};
+use ghostrack_desktop::payouts::{amount_mmx_atomic, mmx, request_error, valid_address};
+use ghostrack_desktop::process::Failure;
 use ghostrack_desktop::store::{Settings, Store};
 #[test]
 fn fresh_settings_use_light_and_saved_theme_choices_survive_reopening() {
@@ -24,28 +25,49 @@ fn fresh_settings_use_light_and_saved_theme_choices_survive_reopening() {
     }
 }
 #[test]
-fn payout_amounts_are_exact_and_dollar_input_is_strict() {
-    assert_eq!(amount_microusd("").unwrap(), None);
-    assert_eq!(amount_microusd(" 40.01 ").unwrap(), Some(40_010_000));
+fn payout_amounts_are_exact_and_mmx_input_is_strict() {
+    assert_eq!(amount_mmx_atomic("").unwrap(), None);
+    assert_eq!(amount_mmx_atomic(" 40.5 ").unwrap(), Some(40_500_000));
+    assert_eq!(amount_mmx_atomic("0.000001").unwrap(), Some(1));
     assert_eq!(
-        amount_microusd("9007199254.75").unwrap(),
-        Some(9_007_199_254_750_000)
+        amount_mmx_atomic("9223372036854.775807").unwrap(),
+        Some(i64::MAX as u64)
     );
     for invalid in [
         "0",
-        "0.00",
+        "0.000000",
         "-1",
         "+1",
         "1e6",
         "1,000",
-        "1.001",
+        "1.0000001",
         ".5",
         "1.",
+        "9223372036854.775808",
         "18446744073709551616",
-        "9223372036854.78",
     ] {
-        assert!(amount_microusd(invalid).is_err(), "{invalid}");
+        assert!(amount_mmx_atomic(invalid).is_err(), "{invalid}");
     }
+}
+#[test]
+fn mmx_amounts_print_exactly_without_trailing_zeros() {
+    assert_eq!(mmx(10_000_000), "10");
+    assert_eq!(mmx(500_000), "0.5");
+    assert_eq!(mmx(1), "0.000001");
+    assert_eq!(mmx(12_500_000), "12.5");
+}
+#[test]
+fn the_payout_range_error_names_mmx() {
+    let refused =
+        |message: &str| request_error(Failure::new("invalid_request", message), false).message;
+    assert_eq!(
+        refused("payout must be between 10 and 100000 MMX"),
+        "Request a payout between 10 MMX and 100000 MMX."
+    );
+    assert!(
+        refused("Payout amounts are in MMX: update ghost to 1.0.4 or later.")
+            .starts_with("The request was refused.")
+    );
 }
 #[test]
 fn payout_addresses_require_the_mmx_checksum() {

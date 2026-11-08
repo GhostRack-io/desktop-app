@@ -11,6 +11,12 @@ export function usdExact(value: string | number | bigint | undefined | null): st
   const fraction = (a % 1_000_000n).toString().padStart(6, '0').replace(/0+$/, '').padEnd(2, '0');
   return (n < 0n ? '−' : '') + '$' + (a / 1_000_000n).toLocaleString('en-US') + '.' + fraction;
 }
+/** An exchange rate decimal exactly: no float, trailing zeros trimmed to two decimals. */
+export function usdRate(value: unknown): string {
+  if (typeof value !== 'string' || !/^\d+(?:\.\d+)?$/.test(value)) return '—';
+  const [whole, fraction = ''] = value.split('.');
+  return '$' + BigInt(whole).toLocaleString('en-US') + '.' + fraction.replace(/0+$/, '').padEnd(2, '0');
+}
 export function mmx(atomic: string | number | bigint, decimals = 6): string {
   const n = BigInt(atomic), base = 10n ** BigInt(decimals);
   const fraction = (n % base).toString().padStart(decimals, '0').replace(/0+$/, '');
@@ -28,11 +34,6 @@ export function topUpUsd(amount: unknown, rate: unknown): string | null {
   const mmxAmount = positiveDecimal(amount, 6), quote = positiveDecimal(rate, 18);
   if (!mmxAmount || !quote) return null;
   return usdExact(mmxAmount.units * 1_000_000n * quote.units / (mmxAmount.scale * quote.scale));
-}
-export function payoutMmx(microusd: unknown, rate: unknown): string | null {
-  const quote = positiveDecimal(rate, 18);
-  if (!quote || typeof microusd !== 'string' || microusd.length > 20 || !/^\d+$/.test(microusd) || BigInt(microusd) <= 0n) return null;
-  return mmx(BigInt(microusd) * quote.scale / quote.units) + ' MMX';
 }
 export function memoBytes(text: string): number { return new TextEncoder().encode(text).length; }
 export function escape(text: unknown): string { return String(text ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]!)); }

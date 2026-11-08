@@ -169,6 +169,13 @@ pub fn restore_charge(size: u64, rate: u64) -> Option<String> {
         .checked_mul(rate)
         .map(|v| v.div_ceil(1024).to_string())
 }
+/// A payout review saved by the dollar-based app: it holds micro-USD and no
+/// MMX amount. It is never sent; it can only be discarded.
+pub fn dollar_review(op: &crate::store::Operation) -> bool {
+    op.kind == "payout"
+        && !op.review["amount_microusd"].is_null()
+        && op.review["amount_mmx_atomic"].is_null()
+}
 fn field(v: &Value, name: &str) -> Result<String> {
     v[name].as_str().map(str::to_owned).ok_or_else(|| {
         Failure::new(
@@ -701,7 +708,9 @@ impl Controller {
             }
             Request::DiscardPayout { id } => {
                 let mut op = self.store.get(&id)?;
-                if !["payout", "payout_address"].contains(&op.kind.as_str()) || !["prepared", "failed"].contains(&op.state.as_str()) {
+                let discardable = ["prepared", "failed"].contains(&op.state.as_str())
+                    || (dollar_review(&op) && ["submitting", "uncertain"].contains(&op.state.as_str()));
+                if !["payout", "payout_address"].contains(&op.kind.as_str()) || !discardable {
                     return Err(Failure::new("payout_state", "Only an unsent or refused payout review can be discarded."));
                 }
                 op.state = "discarded".into();
@@ -1134,7 +1143,7 @@ impl Controller {
         amount: &str,
         address: Option<String>,
     ) -> Result<Value> {
-        let requested = crate::payouts::amount_microusd(amount)?;
+        let requested = crate::payouts::amount_mmx_atomic(amount)?;
         let address = address.map(|a| a.trim().to_owned());
         if address
             .as_ref()
@@ -1158,6 +1167,7 @@ impl Controller {
         };
         if self.store.operations()?.iter().any(|op| {
             op.kind == kind
+                && !dollar_review(op)
                 && op.api_url == s.api_url
                 && op.review["account_alias"] == alias
                 && ["prepared", "submitting", "uncertain"].contains(&op.state.as_str())
@@ -1182,13 +1192,7 @@ impl Controller {
                         "Set your payout address before requesting a payout.",
                     )
                 })?;
-            if balance["sla_settlement_pending"] == true {
-                return Err(Failure::new(
-                    "payout_held",
-                    "An outage on one of your hosts is not settled yet. A payout becomes available once it is.",
-                ));
-            }
-            let available = field(&balance, "available_payout_microusd")?
+            let available = field(&balance, "available_payout_mmx_atomic")?
                 .parse::<i64>()
                 .unwrap_or(0)
                 .max(0) as u64;
@@ -1197,13 +1201,13 @@ impl Controller {
                 return Err(Failure::new(
                     "invalid_payout_amount",
                     format!(
-                        "Choose an amount above zero and no more than {} available now.",
-                        crate::payouts::dollars(available)
+                        "Choose an amount above zero and no more than {} MMX available now.",
+                        crate::payouts::mmx(available)
                     ),
                 ));
             }
             op.review["address"] = json!(destination);
-            op.review["amount_microusd"] = json!(amount.to_string());
+            op.review["amount_mmx_atomic"] = json!(amount.to_string());
         }
         Ok(json!(self.store.put(op)?))
     }
@@ -1215,6 +1219,16 @@ impl Controller {
             return Err(Failure::new(
                 "payout_state",
                 "This saved payout request cannot be submitted.",
+            ));
+        }
+        if dollar_review(&op) && op.state != "complete" {
+            return Err(Failure::new(
+                "payout_review_outdated",
+                if ["prepared", "failed"].contains(&op.state.as_str()) {
+                    "This review is in dollars. Discard it and review a new payout in MMX."
+                } else {
+                    "This saved request is in dollars. If it is not in your payout history, discard it and review a new payout in MMX."
+                },
             ));
         }
         self.check_account_binding(s, &op).await?;
@@ -1251,16 +1265,16 @@ impl Controller {
                 ));
             }
             if op.kind == "payout" {
-                let amount = field(&op.review, "amount_microusd")?
+                let amount = field(&op.review, "amount_mmx_atomic")?
                     .parse::<u64>()
                     .map_err(|_| {
                         Failure::new("payout_state", "The saved payout amount is invalid.")
                     })?;
-                let available = field(&balance, "available_payout_microusd")?
+                let available = field(&balance, "available_payout_mmx_atomic")?
                     .parse::<i64>()
                     .unwrap_or(0)
                     .max(0) as u64;
-                if balance["sla_settlement_pending"] == true || amount > available {
+                if amount > available {
                     return Err(Failure::new(
                         "payout_balance_changed",
                         "The reviewed amount is no longer available. Close and discard this review, then refresh your earnings.",
@@ -1287,8 +1301,14 @@ impl Controller {
             vec![
                 "provider".into(),
                 "payout".into(),
-                "--amount-microusd".into(),
-                field(&op.review, "amount_microusd")?,
+                "--amount".into(),
+                crate::payouts::mmx(
+                    field(&op.review, "amount_mmx_atomic")?
+                        .parse::<u64>()
+                        .map_err(|_| {
+                            Failure::new("payout_state", "The saved payout amount is invalid.")
+                        })?,
+                ),
                 "--idempotency-key".into(),
                 op.id.clone(),
             ]
@@ -1382,8 +1402,8 @@ impl Controller {
                 "Create an account key or select an existing one.",
             )))
         };
-        let (account, balance, deposits, terms, provider, payouts) = if seed.exists() {
-            let (a, b, d, t, p, h) = tokio::join!(
+        let (account, balance, deposits, terms, provider, payouts, conversions) = if seed.exists() {
+            let (a, b, d, t, p, h, c) = tokio::join!(
                 self.ghost(&s, vec!["account".into(), "show".into()], None, None, false),
                 self.ghost(
                     &s,
@@ -1419,6 +1439,18 @@ impl Controller {
                     None,
                     None,
                     false
+                ),
+                self.ghost(
+                    &s,
+                    vec![
+                        "provider".into(),
+                        "conversions".into(),
+                        "--limit".into(),
+                        "20".into()
+                    ],
+                    None,
+                    None,
+                    false
                 )
             );
             (
@@ -1428,6 +1460,7 @@ impl Controller {
                 Outcome::from(t),
                 Outcome::from(p),
                 Outcome::from(h),
+                Outcome::from(c.map(|page| page["items"].clone())),
             )
         } else {
             let missing = || {
@@ -1443,10 +1476,11 @@ impl Controller {
                 missing(),
                 missing(),
                 missing(),
+                missing(),
             )
         };
         Ok(
-            json!({"settings":s,"wallets":wallets,"wallet":wallet,"keys":keys,"ghost_seed_file":seed,"account":account,"account_balance":balance,"deposits":deposits,"activation_terms":terms,"provider_balance":provider,"payouts":payouts,"operations":self.store.operations()?,"refreshed_at":now()}),
+            json!({"settings":s,"wallets":wallets,"wallet":wallet,"keys":keys,"ghost_seed_file":seed,"account":account,"account_balance":balance,"deposits":deposits,"activation_terms":terms,"provider_balance":provider,"payouts":payouts,"conversions":conversions,"operations":self.store.operations()?,"refreshed_at":now()}),
         )
     }
     async fn prepare_send(
