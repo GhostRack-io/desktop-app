@@ -43,7 +43,7 @@ class Service(http.server.BaseHTTPRequestHandler):
         if path == '/address/history': return self.reply([])
         if path == '/transaction': return self.reply(self.server.transaction,204 if self.server.transaction is None else 200)
         if path == '/v1/account/activation-terms': return self.reply({'deposit_address':self.server.address,'minimum_deposit_mmx_atomic':1000000,'minimum_confirmations':6,'mmx_exchange_rate':self.server.exchange_rate})
-        if path in ['/v1/account','/v1/account/balance','/v1/account/deposits','/v1/provider/balance','/v1/provider/payouts'] and not self.server.activated:
+        if path in ['/v1/account','/v1/account/balance','/v1/account/deposits','/v1/provider/balance','/v1/provider/payouts','/v1/provider/conversions'] and not self.server.activated:
             return self.reply({'code':'account_not_activated','message':'This account key has not been activated'},401)
         if path == '/v1/account':
             if self.server.new_key_id and self.headers.get('x-gigahost-auth-key-id') == self.server.new_key_id and not self.server.migrated: return self.reply({'code':'account_not_activated','message':'This account key has not been activated'},401)
@@ -56,6 +56,9 @@ class Service(http.server.BaseHTTPRequestHandler):
         if path == '/v1/account/deposits': return self.reply({'items':[],'next_cursor':None})
         if path == '/v1/provider/balance': return self.reply(self.server.provider_balance)
         if path == '/v1/provider/payouts': return self.reply(self.server.payouts)
+        if path == '/v1/provider/conversions':
+            self.server.conversion_queries.append(urlsplit(self.path).query)
+            return self.reply({'items':self.server.conversions,'next_cursor':None})
         return self.reply({'code':'not_found','message':'not found'},404)
     def do_PUT(self):
         path=urlsplit(self.path).path
@@ -82,12 +85,12 @@ class Service(http.server.BaseHTTPRequestHandler):
                 return self.reply({'code':code,'message':message},status)
             payout=self.server.payout_by_key.get(key)
             if payout is None:
-                amount=value['amount_microusd']
-                payout={'payout_id':str(uuid.uuid4()),'destination_address':self.server.provider_balance['payout_address'],'amount_microusd':amount,'amount_mmx_atomic':None,'state':'queued','chain_transaction_id':None,'requested_at':'2026-10-07T00:00:00Z','submitted_at':None,'confirmed_at':None,'last_error':None,'waiting_reason':None}
+                amount=value['amount_mmx_atomic']
+                payout={'payout_id':str(uuid.uuid4()),'destination_address':self.server.provider_balance['payout_address'],'amount_microusd':0,'amount_mmx_atomic':amount,'state':'queued','chain_transaction_id':None,'requested_at':'2026-10-07T00:00:00Z','submitted_at':None,'confirmed_at':None,'last_error':None,'waiting_reason':None}
                 self.server.payout_by_key[key]=payout
                 self.server.payouts.insert(0,payout)
-                self.server.provider_balance['available_payout_microusd']-=amount
-                self.server.provider_balance['on_the_way_microusd']+=amount
+                self.server.provider_balance['available_payout_mmx_atomic']-=amount
+                self.server.provider_balance['on_the_way_mmx_atomic']+=amount
             if self.server.drop_payout:
                 self.connection.shutdown(socket.SHUT_RDWR); self.connection.close(); return
             return self.reply(payout,202)
@@ -130,8 +133,9 @@ class Desktop(unittest.TestCase):
         self.server.activated=True; self.server.activation_confirmed=True
         self.server.exchange_rate={'usd_per_mmx':'0.200000000000000000','expires_at':'2099-01-01T00:00:00Z'}
         self.server.reject_migration=False
-        self.server.provider_balance={'pending_payout_microusd':90000000,'available_payout_microusd':65500001,'held_microusd':24499999,'on_the_way_microusd':0,'sla_settlement_pending':False,'payout_address':None}
+        self.server.provider_balance={'pending_payout_microusd':90000000,'available_payout_microusd':0,'held_microusd':24499999,'on_the_way_microusd':0,'sla_settlement_pending':False,'available_payout_mmx_atomic':65500001,'on_the_way_mmx_atomic':0,'waiting_for_exchange_rate':False,'payout_address':None}
         self.server.payouts=[]; self.server.payout_by_key={}; self.server.payout_requests=[]; self.server.address_writes=[]
+        self.server.conversions=[]; self.server.conversion_queries=[]
         self.server.drop_payout=False; self.server.drop_address=False; self.server.payout_refusal=None
         self.server.drop_broadcast=False; self.server.drop_migration=False; self.server.migrated=False; self.server.new_key_id=None; self.server.new_memo=None
         self.server.login_url='https://ghostrack.io/login?token=disposable-secret'
@@ -188,7 +192,7 @@ class Desktop(unittest.TestCase):
     def test_gui_activation_after_unregistered_key_response_and_pending_deposit(self):
         self.server.activated=False; self.server.activation_confirmed=False
         snapshot=self.request('snapshot',passphrase=None)
-        for name in ['account','account_balance','deposits']:
+        for name in ['account','account_balance','deposits','conversions']:
             self.assertEqual(snapshot[name]['error']['code'],'account_not_activated')
         self.assertEqual(snapshot['activation_terms']['data']['minimum_confirmations'],6)
         op=self.prepare(purpose='activation',target='untrusted',memo='wrong',amount='1')
@@ -266,33 +270,66 @@ class Desktop(unittest.TestCase):
         self.request('confirm_payout',id=op['id'])
         self.assertEqual(self.server.address_writes,[({'address':self.server.address},self.account_keys['authentication_key_id'])])
         self.assertEqual(self.request('snapshot',passphrase=None)['provider_balance']['data']['payout_address'],self.server.address)
-    def test_payout_reviews_freeze_exact_dollars_and_history_tracks_server_status(self):
-        self.request('prepare_payout',amount='40.01',error='payout_address_required')
+    def test_payout_reviews_freeze_exact_mmx_and_history_tracks_server_status(self):
+        self.request('prepare_payout',amount='12.5',error='payout_address_required')
         self.server.provider_balance['payout_address']=self.server.address
-        op=self.request('prepare_payout',amount='40.01')
-        self.assertEqual(op['review']['amount_microusd'],'40010000')
+        op=self.request('prepare_payout',amount='12.5')
+        self.assertEqual(op['review']['amount_mmx_atomic'],'12500000')
+        self.assertNotIn('amount_microusd',op['review'])
         self.assertEqual(self.server.payout_requests,[])
         confirmed=self.request('confirm_payout',id=op['id'])
         self.assertEqual(confirmed['state'],'complete')
-        self.assertEqual(confirmed['review']['result']['amount_microusd'],'40010000')
+        self.assertEqual(confirmed['review']['result']['amount_mmx_atomic'],'12500000')
+        self.assertEqual(confirmed['review']['result']['amount_microusd'],'0')
         self.request('confirm_payout',id=op['id'])
-        self.assertEqual(self.server.payout_requests,[(op['id'],{'amount_microusd':40010000},self.account_keys['authentication_key_id'])])
+        self.assertEqual(self.server.payout_requests,[(op['id'],{'amount_mmx_atomic':12500000},self.account_keys['authentication_key_id'])])
         snapshot=self.request('snapshot',passphrase=None)
-        self.assertEqual(snapshot['provider_balance']['data']['available_payout_microusd'],'25490001')
+        balance=snapshot['provider_balance']['data']
+        self.assertEqual(balance['available_payout_mmx_atomic'],'53000001')
+        self.assertEqual(balance['on_the_way_mmx_atomic'],'12500000')
         self.assertEqual(snapshot['payouts']['data'][0]['state'],'queued')
+        self.assertEqual(snapshot['payouts']['data'][0]['amount_mmx_atomic'],'12500000')
         self.assertEqual(snapshot['account_balance']['data']['available_microusd'],'123450000')
-        self.server.payouts[0].update(state='confirmed',amount_mmx_atomic=123000001,chain_transaction_id='a'*64,submitted_at='2026-10-07T00:01:00Z',confirmed_at='2026-10-07T00:02:00Z')
+        self.server.payouts[0].update(state='confirmed',chain_transaction_id='a'*64,submitted_at='2026-10-07T00:01:00Z',confirmed_at='2026-10-07T00:02:00Z')
         history=self.request('snapshot',passphrase=None)['payouts']['data'][0]
         self.assertEqual(history['state'],'confirmed')
-        self.assertEqual(history['amount_mmx_atomic'],'123000001')
-    def test_all_available_payout_is_frozen_without_losing_microdollars(self):
-        self.server.provider_balance.update(payout_address=self.server.address,available_payout_microusd=9007199254740993)
+        self.assertEqual(history['amount_mmx_atomic'],'12500000')
+        smallest=self.request('prepare_payout',amount='0.000001')
+        self.assertEqual(smallest['review']['amount_mmx_atomic'],'1')
+        self.request('confirm_payout',id=smallest['id'])
+        self.assertEqual(self.server.payout_requests[-1][1],{'amount_mmx_atomic':1})
+    def test_all_available_payout_is_frozen_without_losing_atoms(self):
+        most=999999999999999
+        self.server.provider_balance.update(payout_address=self.server.address,available_payout_mmx_atomic=most)
         op=self.request('prepare_payout',amount='')
-        self.assertEqual(op['review']['amount_microusd'],'9007199254740993')
-        self.server.provider_balance['available_payout_microusd']+=1000000
+        self.assertEqual(op['review']['amount_mmx_atomic'],str(most))
+        self.server.provider_balance['available_payout_mmx_atomic']+=1000000
         self.request('confirm_payout',id=op['id'])
-        self.assertEqual(self.server.payout_requests[0][1],{'amount_microusd':9007199254740993})
-        self.assertEqual(self.request('snapshot',passphrase=None)['provider_balance']['data']['available_payout_microusd'],'1000000')
+        self.assertEqual(self.server.payout_requests[0][1],{'amount_mmx_atomic':most})
+        self.assertEqual(self.request('snapshot',passphrase=None)['provider_balance']['data']['available_payout_mmx_atomic'],'1000000')
+    def test_amount_above_the_mmx_available_is_refused_before_any_review(self):
+        self.server.provider_balance['payout_address']=self.server.address
+        for amount in ['65.500002','1000']:
+            error=self.request('prepare_payout',amount=amount,error='invalid_payout_amount')
+            self.assertIn('65.500001 MMX',error['message'])
+        self.server.provider_balance['available_payout_mmx_atomic']=0
+        self.server.provider_balance['available_payout_microusd']=100000000
+        self.request('prepare_payout',amount='',error='invalid_payout_amount')
+        self.assertEqual(self.request('snapshot',passphrase=None)['operations'],[])
+        self.assertEqual(self.server.payout_requests,[])
+    def test_an_unsettled_outage_does_not_hold_an_mmx_payout(self):
+        self.server.provider_balance.update(payout_address=self.server.address,sla_settlement_pending=True)
+        op=self.request('prepare_payout',amount='40')
+        self.assertEqual(op['state'],'prepared')
+        self.assertEqual(self.request('confirm_payout',id=op['id'])['state'],'complete')
+        self.assertEqual(self.server.payout_requests[0][1],{'amount_mmx_atomic':40000000})
+    def test_snapshot_reads_the_conversions_page(self):
+        self.assertEqual(self.request('snapshot',passphrase=None)['conversions']['data'],[])
+        row={'conversion_id':str(uuid.uuid4()),'converted_on':'2026-11-08','amount_microusd':20000000,'usd_per_mmx':'5.000000000000000000','exchange_rate_id':str(uuid.uuid4()),'amount_mmx_atomic':4000000,'created_at':'2026-11-08T00:05:00Z'}
+        self.server.conversions.append(row)
+        rows=self.request('snapshot',passphrase=None)['conversions']['data']
+        self.assertEqual(rows,[{key:str(value) if isinstance(value,int) else value for key,value in row.items()}])
+        self.assertEqual(set(self.server.conversion_queries),{'limit=20'})
     def test_accepted_payout_with_lost_response_retries_once_across_restart(self):
         self.server.provider_balance['payout_address']=self.server.address
         op=self.request('prepare_payout',amount='')
@@ -308,19 +345,39 @@ class Desktop(unittest.TestCase):
         self.assertEqual(result['state'],'complete')
         self.assertEqual(result['review']['result']['destination_address'],self.server.address)
         self.assertEqual(len(self.server.payouts),1)
-        self.assertEqual(self.server.provider_balance['available_payout_microusd'],0)
+        self.assertEqual(self.server.provider_balance['available_payout_mmx_atomic'],0)
         self.assertEqual([r[0] for r in self.server.payout_requests],[op['id'],op['id']])
-        self.assertEqual([r[1] for r in self.server.payout_requests],[{'amount_microusd':65500001}]*2)
-    def test_payout_rejection_shows_dollars_and_allows_discard(self):
+        self.assertEqual([r[1] for r in self.server.payout_requests],[{'amount_mmx_atomic':65500001}]*2)
+    def test_payout_rejection_shows_mmx_and_allows_discard(self):
         self.server.provider_balance['payout_address']=self.server.address
         op=self.request('prepare_payout',amount='1')
-        self.server.payout_refusal=('invalid_request','payout must be between 5000000 and 5000000000 micro-USD',400)
+        self.server.payout_refusal=('invalid_request','payout must be between 10 and 100000 MMX',400)
         error=self.request('confirm_payout',id=op['id'],error='invalid_request')
-        self.assertEqual(error['message'],'Request a payout between $5.00 and $5000.00.')
+        self.assertEqual(error['message'],'Request a payout between 10 MMX and 100000 MMX.')
         self.assertEqual(self.request('payout_review',id=op['id'])['state'],'failed')
         self.request('discard_payout',id=op['id'])
-        self.assertEqual(self.request('prepare_payout',amount='5')['state'],'prepared')
+        self.assertEqual(self.request('prepare_payout',amount='10')['state'],'prepared')
         self.assertEqual(self.server.payouts,[])
+    def test_a_dollar_review_of_the_earlier_app_is_never_sent_and_can_be_discarded(self):
+        self.server.provider_balance['payout_address']=self.server.address
+        outdated={'prepared':'This review is in dollars. Discard it and review a new payout in MMX.','uncertain':'This saved request is in dollars. If it is not in your payout history, discard it and review a new payout in MMX.'}
+        for state,message in outdated.items():
+            op=self.request('prepare_payout',amount='40')
+            path=self.root/'state/operations.json'
+            journal=json.loads(path.read_text())
+            saved=next(entry for entry in journal if entry['id'] == op['id'])
+            saved['state']=state
+            saved['review']['amount_microusd']='40010000'
+            del saved['review']['amount_mmx_atomic']
+            path.write_text(json.dumps(journal))
+            error=self.request('confirm_payout',id=op['id'],error='payout_review_outdated')
+            self.assertEqual(error['message'],message)
+            self.assertEqual(self.request('payout_review',id=op['id'])['state'],state)
+            self.assertEqual(self.server.payout_requests,[])
+            fresh=self.request('prepare_payout',amount='40')
+            self.assertEqual(fresh['review']['amount_mmx_atomic'],'40000000')
+            self.request('discard_payout',id=fresh['id'])
+            self.assertEqual(self.request('discard_payout',id=op['id'])['state'],'discarded')
     def test_rejected_retry_cannot_release_an_already_accepted_payout(self):
         self.server.provider_balance['payout_address']=self.server.address
         op=self.request('prepare_payout',amount='40')
@@ -342,12 +399,12 @@ class Desktop(unittest.TestCase):
         self.server.provider_balance['payout_address']=NATIVE
         self.request('confirm_payout',id=op['id'],error='payout_address_changed')
         self.server.provider_balance['payout_address']=self.server.address
-        self.server.provider_balance['sla_settlement_pending']=True
+        self.server.provider_balance['available_payout_mmx_atomic']=39999999
         self.request('confirm_payout',id=op['id'],error='payout_balance_changed')
-        self.server.provider_balance['sla_settlement_pending']=False
-        self.server.provider_balance['available_payout_microusd']=0
+        self.server.provider_balance['available_payout_mmx_atomic']=0
+        self.server.provider_balance['available_payout_microusd']=100000000
         self.request('confirm_payout',id=op['id'],error='payout_balance_changed')
-        self.server.provider_balance['available_payout_microusd']=65500001
+        self.server.provider_balance['available_payout_mmx_atomic']=65500001
         self.seed.unlink()
         subprocess.check_output([ARGS.ghost,'--compact','key','generate','--output',str(self.seed)],env=self.env,text=True)
         self.request('confirm_payout',id=op['id'],error='account_changed')
