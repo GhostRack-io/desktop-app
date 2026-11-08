@@ -105,7 +105,7 @@ test('settings inputs and the restore review button align with adjacent controls
 
 function populatedProvider() {
   const state:any=structuredClone(fixture);
-  state.provider_balance={data:{pending_payout_microusd:'90000000',available_payout_microusd:'65500001',held_microusd:'24499999',on_the_way_microusd:'40010000',sla_settlement_pending:false,payout_address:address},error:null};
+  state.provider_balance={data:{pending_payout_microusd:'90000000',available_payout_microusd:'65500001',available_payout_mmx_atomic:'12250000',on_the_way_mmx_atomic:'8002000',waiting_for_exchange_rate:false,held_microusd:'24499999',on_the_way_microusd:'40010000',sla_settlement_pending:false,payout_address:address},error:null};
   state.payouts={data:[{payout_id:'d991d038-bbfc-4a9b-82dd-0d1cf33281b7',destination_address:address,amount_microusd:'40010000',amount_mmx_atomic:'200050000',state:'submitted',chain_transaction_id:'a'.repeat(64),requested_at:'2026-10-07T00:00:00Z',waiting_reason:null}],error:null};
   return state;
 }
