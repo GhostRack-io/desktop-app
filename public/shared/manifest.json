@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "files": {
-    "app-icon.svg": "b43738b8f48415899e684613232545907f6c541d81061a5a008e1580126d311b",
+    "app-icon.svg": "528525cb469801db8a0ee7ad33be72eb3edb3c716066daa497ca1721c2b1ec35",
     "art-hero-dark.svg": "2564495a4f0c3f3e1f03c0a9a87f3a03164bf1ea41d8e9aadb9b7d45fb56650e",
     "art-hero-light.svg": "810d80df6c2a3245d0a826284b18235e8eed3afc94047d49aefa8c71fdd77bbd",
     "art-rail-end-dark.svg": "1d5e5ce10dd328d0fd5dfaa5a7db95e129d14409c9b1833d1ca566cc4624d552",
@@ -17,7 +17,7 @@
     "lockup.svg": "96eb01e87cb0f2b0f4e9a0d2840b17c05c8df58256c7de2c4399944794233dbe",
     "logo-small.svg": "6d2a7df4fa4a751496447dead03f337ba33f94d07adab73c5fe8847816404a7f",
     "logo.svg": "a903da7a8f9506c4ab2a86cbb299c68b7b70570b07716cc6a312d27d73118b73",
-    "site.css": "3733175844d6efd85f4073536814fa36ab7dd2328b83a641dc8d0b540b34d9a1",
-    "theme.json": "b4816e7b99d04ce3a7d9451007c615b99d527e43eb5facf383c057e93086db8c"
+    "site.css": "1e18413c3380fd0887b449bc189da0fe7398814fd79cf45f02c9f2fbaefff657",
+    "theme.json": "8763cb158c42fbf754061e19a34d952c50b00eb724c94fc1f65ea5fe50cff5a0"
   }
 }
