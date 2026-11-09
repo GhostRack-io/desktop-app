@@ -746,6 +746,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
 @media (min-width:40em){.facts:not(.facts--inline)>div{grid-template-columns:minmax(6rem,9.5rem) minmax(min-content,1fr);align-items:baseline}}
 .tiles--compact .tile{padding-block:var(--space-3)}
+.tile__unit{color:var(--color-text-muted);font-size:.875rem;letter-spacing:0}
 .tiles--compact .tile__value{font-size:var(--text-xl)}
 @media not all and (min-width:40em){
 .tiles--compact{display:block}
