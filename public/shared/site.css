@@ -571,7 +571,7 @@ main:focus{outline:none}
 .field>label~.field__help,.field>legend,.choices>legend,.field>legend~.field__help{padding-inline-start:var(--label-pad)}
 .field--top{align-self:flex-start}
 .field--grow{flex:1 1 24rem}
-.field--amount :is(input,.unit-box){max-inline-size:10rem}
+.field--amount input,.field .unit-box{max-inline-size:10rem}
 input[data-type="dollars"]{text-align:end}
 
 input[type="number"]{-moz-appearance:textfield;appearance:textfield}
@@ -583,7 +583,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .field--invalid .unit-box{border:var(--border-thick) solid var(--color-danger)}
 .unit-box--disabled{border-color:var(--color-border);background-color:var(--color-surface-sunken);color:var(--color-text-muted);box-shadow:none}
 .unit-box__unit{flex:none;color:var(--color-text-muted);white-space:nowrap}
-.field .unit-box input{flex:1 1 auto;min-inline-size:0;min-block-size:0;padding-block:.375rem;padding-inline:0;border:0;background:none;box-shadow:none;outline:none;text-align:start}
+.field .unit-box input{flex:1 1 auto;min-inline-size:0;min-block-size:0;padding-block:.375rem;padding-inline:0;border:0;background:none;box-shadow:none;outline:none;text-align:end}
 .field .unit-box input:is(:hover,:focus,[aria-invalid=true]){border:0;outline:none}
 .field--amount+.btn{align-self:flex-end}
 .action>.field__help{flex:1 0 100%}
