@@ -1258,7 +1258,7 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 }
 .offer-list__head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3);padding:var(--space-5) 0 var(--space-3)}
 .offer-list__head h2{font-size:var(--text-title);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight)}
-.offer-list__head>:last-child{margin-inline-start:auto}
+.offer-list__head>.note:not(.note--link)+.note--link{margin-inline-start:auto}
 @media not all and (min-width:48em){.offer-list__head h2{flex-basis:100%}}
 .offer-list>.table-wrap:last-child tbody tr:last-of-type>*{border-block-end:0}
 .offer-list>.empty-state{margin:0}
@@ -1268,8 +1268,8 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 
 #offerings tbody th{font-weight:calc(var(--weight-medium) + 50)}
 #offerings .size-bold,#offerings .size-bold .figure-number,#offerings .size-bold .figure-unit{font-weight:var(--weight-bold)}
-#offerings .price .money{font-size:var(--text-title);letter-spacing:-.01em;line-height:1.15}
-#offerings .type>span{display:inline-block;padding:.0625rem .4375rem;background:var(--color-hover);color:var(--color-text);font-size:var(--text-sm);font-weight:var(--weight-medium);box-shadow:inset 0 0 0 var(--border) var(--color-divider);border-radius:var(--radius-sm)}
+#offerings .price .money,.offer-card__score{font-size:var(--text-title);letter-spacing:-.01em;line-height:1.15}
+#offerings .type>span,.offer-card .type>span{display:inline-block;padding:.0625rem .4375rem;background:var(--color-hover);color:var(--color-text);font-size:var(--text-sm);font-weight:var(--weight-medium);box-shadow:inset 0 0 0 var(--border) var(--color-divider);border-radius:var(--radius-sm)}
 
 #offerings .private-tag{margin-inline-start:var(--space-2)}
 #offerings .loc .cell-note a{color:var(--color-text-muted)}
@@ -1277,8 +1277,8 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 
 #offerings .loc .cell-note>a,.offer-list__head .note--link>a{padding-block:.375rem}
 #offerings .rel .cell-note{max-inline-size:none}
-#offerings :is(th,td){line-height:1.35}
-#offerings .cell-note{margin-block-start:.125rem}
+#offerings :is(th,td),.offer-card>*{line-height:1.35}
+#offerings .cell-note,.offer-card .cell-note{margin-block-start:.125rem}
 #offerings td.entry{inline-size:1%}
 .rent{padding-inline:.75rem}
 
@@ -1290,11 +1290,12 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 .offer-list>.table-wrap{overflow:visible;background:none}
 #offerings,#offerings :is(tbody,th,td){display:block}
 #offerings thead{position:absolute;inline-size:var(--border);block-size:var(--border);overflow:hidden;clip:rect(0 0 0 0)}
-#offerings tbody{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr));gap:var(--space-3)}
-#offerings tr{--card-pad:var(--space-4);--card-edge:.1875rem;position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;grid-template-areas:"cpu cpu cpu price" "size ram disk traf" "loc loc type kind" "rel rel rel entry";gap:var(--space-3) var(--space-4);align-content:start;padding:0 var(--card-pad) var(--space-3);border:var(--border) solid var(--color-glass-rim-mid);border-inline-start:var(--card-edge) solid var(--color-primary);border-radius:var(--radius);background:var(--offer-card);box-shadow:var(--glass-card-lift),var(--offer-glow)}
-#offerings tr::before{content:"";position:absolute;inset:0;background:linear-gradient(112deg,var(--color-transparent) 5rem,var(--offer-streak) 5.02rem 12rem,var(--color-transparent) 12.02rem 14rem,var(--offer-streak-faint) 14.02rem 17rem,var(--color-transparent) 17.02rem);border-radius:inherit;-webkit-mask-image:linear-gradient(var(--color-text),var(--color-transparent) 85%);mask-image:linear-gradient(var(--color-text),var(--color-transparent) 85%);pointer-events:none}
+#offerings tbody,.provider-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr));gap:var(--space-3)}
+#offerings tr,.offer-card{--card-pad:var(--space-4);--card-edge:.1875rem;position:relative;display:grid;gap:var(--space-3) var(--space-4);align-content:start;padding:0 var(--card-pad) var(--space-3);border:var(--border) solid var(--color-glass-rim-mid);border-inline-start:var(--card-edge) solid var(--color-primary);border-radius:var(--radius);background:var(--offer-card);box-shadow:var(--glass-card-lift),var(--offer-glow)}
+#offerings tr{grid-template-columns:repeat(3,minmax(0,1fr)) auto;grid-template-areas:"cpu cpu cpu price" "size ram disk traf" "loc loc type kind" "rel rel rel entry"}
+#offerings tr::before,.offer-card::before{content:"";position:absolute;inset:0;background:linear-gradient(112deg,var(--color-transparent) 5rem,var(--offer-streak) 5.02rem 12rem,var(--color-transparent) 12.02rem 14rem,var(--offer-streak-faint) 14.02rem 17rem,var(--color-transparent) 17.02rem);border-radius:inherit;-webkit-mask-image:linear-gradient(var(--color-text),var(--color-transparent) 85%);mask-image:linear-gradient(var(--color-text),var(--color-transparent) 85%);pointer-events:none}
 #offerings tr::after{content:none}
-#offerings tr>*{position:relative}
+#offerings tr>*,.offer-card>*{position:relative}
 #offerings :is(th,td),#offerings :is(th,td):is(:first-child,:last-child){padding:0;border:0;background:none;text-align:start;white-space:normal}
 #offerings :is(tbody,tfoot) th{font-size:inherit}
 #offerings td::before{content:none}
@@ -1315,13 +1316,37 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 
 @media (hover:none){#offerings .tip[data-tip]:not([data-tip=""]){text-decoration-line:none}}
 
-#offerings tr>:is(.cpu,.price),#offerings tr>:is(.cpu,.price):is(:first-child,:last-child){padding-block:var(--space-3) var(--space-2);background:var(--color-surface-sunken)}
-#offerings tr>.cpu,#offerings tr>.cpu:first-child{margin-inline-start:calc(var(--card-pad) * -1);padding-inline-start:var(--card-pad);border-start-start-radius:calc(var(--radius) - var(--border))}
-#offerings tr>.price{margin-inline-end:calc(var(--card-pad) * -1);padding-inline-end:var(--card-pad);border-start-end-radius:calc(var(--radius) - var(--border));box-shadow:calc(var(--space-4) * -1) 0 0 var(--color-surface-sunken)}
+#offerings tr>:is(.cpu,.price),#offerings tr>:is(.cpu,.price):is(:first-child,:last-child),.offer-card>:is(.offer-card__title,.offer-card__figure){padding-block:var(--space-3) var(--space-2);background:var(--color-surface-sunken)}
+#offerings tr>.cpu,#offerings tr>.cpu:first-child,.offer-card>.offer-card__title{margin-inline-start:calc(var(--card-pad) * -1);padding-inline-start:var(--card-pad);border-start-start-radius:calc(var(--radius) - var(--border))}
+#offerings tr>.price,.offer-card>.offer-card__figure{margin-inline-end:calc(var(--card-pad) * -1);padding-inline-end:var(--card-pad);border-start-end-radius:calc(var(--radius) - var(--border));box-shadow:calc(var(--space-4) * -1) 0 0 var(--color-surface-sunken)}
 @media not all and (min-width:40em){
-#offerings tr{--card-pad:var(--space-3);grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"cpu cpu price" "size ram disk" "loc loc type" "rel rel traf" "kind entry entry";gap:.625rem var(--space-3)}
-#offerings tr>.price{box-shadow:calc(var(--space-3) * -1) 0 0 var(--color-surface-sunken)}
+#offerings tr,.offer-card{--card-pad:var(--space-3);gap:.625rem var(--space-3)}
+#offerings tr{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"cpu cpu price" "size ram disk" "loc loc type" "rel rel traf" "kind entry entry"}
+#offerings tr>.price,.offer-card>.offer-card__figure{box-shadow:calc(var(--space-3) * -1) 0 0 var(--color-surface-sunken)}
 #offerings :is(.type,.traf){text-align:end}
+}
+
+.provider-card{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;grid-template-areas:"title title title score" "hosts loc loc type" "cpus cpus best best" "totals totals totals totals" "rel rel rel entry"}
+.offer-card__name{font-size:inherit;font-weight:calc(var(--weight-medium) + 50);letter-spacing:normal}
+.offer-card__name a{color:var(--color-text);text-decoration-line:none}
+.offer-card__name a:is(:hover,:focus-visible){text-decoration-line:underline}
+.offer-card__figure{text-align:end}
+.provider-card>.offer-card__title{grid-area:title}
+.provider-card>.offer-card__figure{grid-area:score}
+.provider-card>.hosts{grid-area:hosts}
+.provider-card>.loc{grid-area:loc}
+.provider-card>.type{grid-area:type}
+.provider-card>.cpus{grid-area:cpus}
+.provider-card>.best{grid-area:best}
+.provider-card>.rel{grid-area:rel}
+.provider-card>.totals{grid-area:totals;display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);padding-block-start:var(--space-2);border-block-start:var(--border) solid var(--color-divider)}
+.offer-card__from{color:var(--color-text-muted);font-size:var(--text-sm);font-weight:var(--weight-regular);letter-spacing:normal}
+.provider-card>.entry{grid-area:entry;align-self:end;text-align:end}
+.provider-card>.type{display:flex;flex-wrap:wrap;gap:var(--space-1);align-content:start}
+.provider-cards+.pager{margin:0;padding:var(--space-4) 0}
+@media not all and (min-width:40em){
+.provider-card{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"title title score" "hosts loc type" "cpus cpus cpus" "best best best" "totals totals totals" "rel rel entry"}
+.provider-card>.type{justify-content:end}
 }
 
 .host-type .icon{inline-size:1.333em;block-size:1.333em;vertical-align:-.3em}
