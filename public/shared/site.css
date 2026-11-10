@@ -1313,6 +1313,8 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 #offerings .num .cell-note{margin-inline-start:0}
 #offerings :is(.ram,.disk,.traf){text-align:start}
 
+@media (hover:none){#offerings .tip[data-tip]:not([data-tip=""]){text-decoration-line:none}}
+
 #offerings tr>:is(.cpu,.price),#offerings tr>:is(.cpu,.price):is(:first-child,:last-child){padding-block:var(--space-3) var(--space-2);background:var(--color-surface-sunken)}
 #offerings tr>.cpu,#offerings tr>.cpu:first-child{margin-inline-start:calc(var(--card-pad) * -1);padding-inline-start:var(--card-pad);border-start-start-radius:calc(var(--radius) - var(--border))}
 #offerings tr>.price{margin-inline-end:calc(var(--card-pad) * -1);padding-inline-end:var(--card-pad);border-start-end-radius:calc(var(--radius) - var(--border));box-shadow:calc(var(--space-4) * -1) 0 0 var(--color-surface-sunken)}
