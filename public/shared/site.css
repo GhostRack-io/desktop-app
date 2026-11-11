@@ -1530,6 +1530,11 @@ form[data-action="offering.rent"]{display:flex}
 .reveal__secret>:not(.code-block,input){justify-self:start}
 @media (min-width:40em){.reveal__secret{grid-template-columns:minmax(0,1fr) auto;align-items:center}}
 .flow-footnote{padding-block-start:var(--space-4);border-block-start:var(--border) solid var(--color-divider)}
+
+.totp-enroll{display:grid;gap:var(--space-4);align-items:center;min-inline-size:0}
+@media (min-width:40em){.totp-enroll{grid-template-columns:auto minmax(0,1fr)}}
+.banner-code{display:grid;gap:var(--space-3);max-inline-size:24rem}
+.qr{display:block;inline-size:11rem;max-inline-size:100%;block-size:auto;color:var(--color-term);background:var(--color-term-text);border-radius:var(--radius)}
 @media not all and (min-width:40em){:is(.flow,.reveal){padding-inline:var(--space-4)}}
 
 
