@@ -419,6 +419,8 @@ main:focus{outline:none}
 .panel--danger::after,.section--danger::after{background:var(--color-danger)}
 .panel--danger .panel__title,.section--danger .section__title{color:var(--color-danger-text)}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr));gap:var(--space-5)}
+.cols--fill{grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr))}
+.lan-meshes>li{display:grid;align-content:start;gap:var(--space-4)}
 .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
 .toolbar>.btn--quiet:first-child{margin-inline-start:calc(var(--pad) * -1)}
 .form{display:grid;gap:var(--space-5);max-inline-size:40rem}
