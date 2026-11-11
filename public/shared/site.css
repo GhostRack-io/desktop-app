@@ -434,6 +434,12 @@ main:focus{outline:none}
 .eyebrow,.facts dt,.tile__label,.metric__label,.data-table thead th,.data-table td::before,.filter-links__label,.subnav__label{color:var(--color-text-muted);font-size:var(--text-label);font-weight:var(--weight-medium);line-height:var(--leading-tight)}
 .icon{inline-size:1em;block-size:1em;flex:none;vertical-align:-.125em}
 
+.flag{inline-size:1.3333em;block-size:1em;flex:none;vertical-align:-.125em;margin-inline-end:.375em;outline:var(--border) solid var(--color-border);outline-offset:calc(var(--border) * -1)}
+
+.flag-select{position:relative}
+.flag-select .field select{padding-inline-start:calc(var(--field-pad) + 1.3333em + .375em)}
+.flag-select>.flag{position:absolute;inset-inline-start:calc(var(--field-pad) + var(--border));inset-block-end:calc((var(--control-height) - 1em) / 2);margin:0;pointer-events:none}
+
 .icon__accent{fill:var(--color-accent)}
 :is(.notice__icon,.field__error,.btn--primary,.btn--danger,.btn:disabled,.badge) .icon__accent{fill:currentColor}
 
@@ -746,6 +752,8 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .facts--inline{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-6)}
 .facts--inline>div{display:flex;align-items:center;gap:var(--space-2);padding:0}
 .facts--inline dd{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);min-block-size:1.75rem}
+
+.facts--inline dd>.flag{margin-inline-end:0}
 
 @media (min-width:40em){.facts:not(.facts--inline)>div{grid-template-columns:minmax(6rem,9.5rem) minmax(min-content,1fr);align-items:baseline}}
 .tiles--compact .tile{padding-block:var(--space-3)}
@@ -1184,6 +1192,8 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
   *,::before,::after{animation:none !important;transition:none !important}
 }
 @media (forced-colors:active){
+.flag{display:none}
+.flag-select .field select{padding-inline-start:var(--field-pad)}
 .art,body::before,body::after,:is(.site-header,.site-footer)::before,:is(.site-header,.site-footer)::after,.btn--primary::after{display:none}
 .site-header{background:var(--sys-canvas)}
 .icon__accent{fill:currentColor}
@@ -1260,11 +1270,11 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 @media (min-width:80em){:is(.offer-list>.filters,.offer-list>.filters>.filters__body){grid-template-columns:minmax(0,1.5fr) minmax(0,1.1fr) repeat(3,minmax(0,.8fr)) auto}}
 @media (min-width:48em){@media not all and (min-width:80em){
 :is(.offer-list>.filters,.offer-list>.filters>.filters__body){grid-template-columns:repeat(4,minmax(0,1fr))}
-:is(.offer-list>.filters,.offer-list>.filters>.filters__body)>.field:first-child{grid-column:span 2}
+:is(.offer-list>.filters,.offer-list>.filters>.filters__body)>:is(.field,.flag-select):first-child{grid-column:span 2}
 }}
 @media not all and (min-width:48em){
 :is(.offer-list>.filters,.offer-list>.filters>.filters__body){grid-template-columns:repeat(2,minmax(0,1fr))}
-:is(.offer-list>.filters,.offer-list>.filters>.filters__body)>:is(.field:first-child,.btn:nth-last-child(2)){grid-column:1 / -1;justify-self:stretch}
+:is(.offer-list>.filters,.offer-list>.filters>.filters__body)>:is(.field:first-child,.flag-select:first-child,.btn:nth-last-child(2)){grid-column:1 / -1;justify-self:stretch}
 }
 
 .filters--sheet{display:block}
