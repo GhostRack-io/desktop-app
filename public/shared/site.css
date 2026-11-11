@@ -1064,8 +1064,13 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .dialog__actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-2);margin-inline:calc(var(--space-5) * -1);padding:var(--space-3) var(--space-5);border-block-start:var(--border) solid var(--color-divider);background:var(--color-bg)}
 
 .instance-frame{display:contents}
+
+.instance-frame__job{padding:.75rem .875rem;background:var(--color-accent-surface);border-radius:var(--radius)}
+.instance-frame__job .job__title{font-size:.875rem}
 .balance-strip>section{display:grid;gap:var(--space-3)}
 .balance-strip__note,.notice__meta{color:var(--color-text-muted);font-size:var(--text-sm)}
+
+.balance-strip__note{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4)}
 
 @media (min-width:40em){@media not all and (min-width:64em){.balance-strip .tiles>.tile:nth-child(n+5){grid-column:1 / -1}}}
 
