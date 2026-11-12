@@ -998,6 +998,7 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 
 .num>.tip[data-tip]::after,.tip[data-tip].tip--end::after{inset-inline:auto 0}
 .tip[data-tip].tip--start::after{inset-inline:0 auto}
+.tip--icon{margin-inline-start:.375rem;color:var(--color-text-muted)}
 
 .tip[data-tip=""]{cursor:auto}
 .tip[data-tip=""]::after{content:none}
