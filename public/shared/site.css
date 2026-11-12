@@ -690,7 +690,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
 
 .meter,.progress{display:block;inline-size:100%;block-size:.3125rem;border:0;background:var(--color-track);border-radius:.3125rem}
-.progress{appearance:none;overflow:hidden}
+.progress{appearance:none;overflow:hidden;box-sizing:content-box;border:var(--border) solid var(--color-glass-control-edge)}
 .meter::-webkit-meter-bar{block-size:100%;border:0;background:var(--color-track);border-radius:inherit}
 .meter::-webkit-meter-optimum-value{background:var(--color-accent)}
 :is(.meter::-webkit-meter-optimum-value,.meter::-webkit-meter-suboptimum-value,.meter::-webkit-meter-even-less-good-value){border-radius:inherit}
