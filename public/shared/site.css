@@ -93,8 +93,8 @@
 --color-glass-refract:#6f93f03d;
 --color-glass-inner:#6e64b83d;
 --color-glass-vent:#2d276652;
---color-glass-chrome-hi:#ffffff;
---color-glass-chrome-mid:#cfcce2;
+--color-glass-chrome-hi:#e2e0ee;
+--color-glass-chrome-mid:#bdb9d2;
 --color-glass-chrome-low:#8e89ad;
 --color-glass-card-tint:#efedf794;
 --color-glass-tile:#f1eff8c2;
@@ -240,10 +240,10 @@
 --color-glass-rim-faint:#ffffff2b;
 --color-glass-hairline:#0000007a;
 --color-glass-field-shade:#0000005c;
---color-glass-streak:#ffffff21;
---color-glass-streak-edge:#ffffff52;
---color-glass-streak-faint:#ffffff10;
---color-glass-card-streak:#ffffff29;
+--color-glass-streak:#ffffff12;
+--color-glass-streak-edge:#ffffff2e;
+--color-glass-streak-faint:#ffffff09;
+--color-glass-card-streak:#ffffff16;
 --color-glass-refract:#2c68ff5c;
 --color-glass-inner:#8fa6ff24;
 --color-glass-vent:#000000b3;
@@ -252,8 +252,8 @@
 --color-glass-chrome-low:#262a47;
 --color-glass-card-tint:#ffffff0b;
 --color-glass-tile:#1a1e348f;
---color-glass-bar-streak:#ffffff12;
---color-glass-bar-streak-edge:#ffffff30;}}
+--color-glass-bar-streak:#ffffff0a;
+--color-glass-bar-streak-edge:#ffffff1f;}}
 :root[data-theme="dark"],:root[data-theme="dark"] ::backdrop{color-scheme:dark;
 --color-transparent:#00000000;
 --color-art-led-amber:#ffb43a;
@@ -340,10 +340,10 @@
 --color-glass-rim-faint:#ffffff2b;
 --color-glass-hairline:#0000007a;
 --color-glass-field-shade:#0000005c;
---color-glass-streak:#ffffff21;
---color-glass-streak-edge:#ffffff52;
---color-glass-streak-faint:#ffffff10;
---color-glass-card-streak:#ffffff29;
+--color-glass-streak:#ffffff12;
+--color-glass-streak-edge:#ffffff2e;
+--color-glass-streak-faint:#ffffff09;
+--color-glass-card-streak:#ffffff16;
 --color-glass-refract:#2c68ff5c;
 --color-glass-inner:#8fa6ff24;
 --color-glass-vent:#000000b3;
@@ -352,8 +352,8 @@
 --color-glass-chrome-low:#262a47;
 --color-glass-card-tint:#ffffff0b;
 --color-glass-tile:#1a1e348f;
---color-glass-bar-streak:#ffffff12;
---color-glass-bar-streak-edge:#ffffff30;}
+--color-glass-bar-streak:#ffffff0a;
+--color-glass-bar-streak-edge:#ffffff1f;}
 }
 
 
@@ -379,11 +379,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 --glass-card-lift:0 .375rem 1rem -.625rem var(--color-glass-lift),var(--glass-hi);
 --glass-control-lift:0 .125rem .375rem -.125rem var(--color-glass-lift-soft),var(--glass-hi);
 --glass-inset:inset 0 var(--border) .1875rem var(--color-glass-field-shade),0 var(--border) 0 var(--color-glass-rim-faint);
---glass-bar:linear-gradient(112deg,var(--color-transparent) 30rem,var(--color-glass-bar-streak-edge) 30.02rem 30.08rem,var(--color-glass-bar-streak) 30.1rem 36rem,var(--color-transparent) 36.02rem 38rem,var(--color-glass-bar-streak) 38.02rem 40rem,var(--color-transparent) 40.02rem),linear-gradient(var(--color-glass-bar-top),var(--color-glass-bar-end));
+--glass-bar:linear-gradient(112deg,var(--color-transparent) 30rem,var(--color-glass-bar-streak-edge) 30.12rem,var(--color-glass-bar-streak) 30.3rem 35.7rem,var(--color-transparent) 36.2rem 38rem,var(--color-glass-bar-streak) 38.2rem 39.8rem,var(--color-transparent) 40.2rem),linear-gradient(var(--color-glass-bar-top),var(--color-glass-bar-end));
 --glass-chrome-line:linear-gradient(90deg,var(--color-glass-chrome-low),var(--color-glass-chrome-hi) 16%,var(--color-glass-chrome-mid) 34%,var(--color-glass-chrome-hi) 52%,var(--color-glass-chrome-low) 70%,var(--color-glass-chrome-hi) 86%,var(--color-glass-chrome-mid));
 
 --glass-flare:var(--glass-chrome-line);
---glass-streaks:linear-gradient(112deg,var(--color-transparent) 8rem,var(--color-glass-streak-edge) 8.02rem 8.12rem,var(--color-glass-streak) 8.14rem 20rem,var(--color-transparent) 20.02rem 23rem,var(--color-glass-streak-edge) 23.02rem 23.08rem,var(--color-glass-streak-faint) 23.1rem 28rem,var(--color-transparent) 28.02rem);
+--glass-streaks:linear-gradient(112deg,var(--color-transparent) 8rem,var(--color-glass-streak-edge) 8.15rem,var(--color-glass-streak) 8.4rem 19.6rem,var(--color-transparent) 20.2rem 23rem,var(--color-glass-streak-edge) 23.12rem,var(--color-glass-streak-faint) 23.3rem 27.6rem,var(--color-transparent) 28.2rem);
 --glass-inner-band:inset 0 0 .875rem -.25rem var(--color-glass-inner);
 --glass-head:linear-gradient(var(--color-glass-head),var(--color-transparent));
 --glass-card:linear-gradient(var(--color-glass-card),var(--color-glass-card-end));
@@ -754,7 +754,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .progress:indeterminate::-moz-progress-bar{background:var(--color-transparent)}
 .gauge{white-space:nowrap}
 
-:is(.metrics,.tiles){display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));overflow:hidden;border:var(--border) solid var(--color-glass-hairline);background:linear-gradient(112deg,var(--color-transparent) 9rem,var(--color-glass-streak-edge) 9.02rem 9.08rem,var(--color-glass-streak) 9.1rem 15rem,var(--color-transparent) 15.02rem 17rem,var(--color-glass-streak-faint) 17.02rem 20rem,var(--color-transparent) 20.02rem),var(--color-glass-tile);box-shadow:var(--glass-card-lift),var(--glass-inner-band);border-radius:var(--radius)}
+:is(.metrics,.tiles){display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));overflow:hidden;border:var(--border) solid var(--color-glass-hairline);background:linear-gradient(112deg,var(--color-transparent) 9rem,var(--color-glass-streak-edge) 9.12rem,var(--color-glass-streak) 9.3rem 14.7rem,var(--color-transparent) 15.2rem 17rem,var(--color-glass-streak-faint) 17.2rem 19.7rem,var(--color-transparent) 20.2rem),var(--color-glass-tile);box-shadow:var(--glass-card-lift),var(--glass-inner-band);border-radius:var(--radius)}
 :is(.section,.panel) :is(.metrics,.tiles){margin-inline:calc(var(--inset) * -1);border:0;background:none;box-shadow:none;border-radius:0}
 :is(.metric,.tile){position:relative;display:grid;align-content:start;gap:.375rem;padding:1.125rem 1.25rem}
 :is(.metric,.tile)::before,:is(.metric,.tile)::after{content:"";position:absolute;border:0 solid var(--color-divider)}
@@ -1379,7 +1379,7 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 #offerings tbody,.provider-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr));gap:var(--space-3)}
 #offerings tr,.offer-card{--card-pad:var(--space-4);position:relative;display:grid;gap:var(--space-3) var(--space-4);align-content:start;padding:0 var(--card-pad) calc(var(--space-3) + .875rem);border:var(--border) solid var(--color-glass-hairline);border-radius:var(--radius);background:radial-gradient(circle,var(--color-glass-vent) .0625rem,var(--color-transparent) .09375rem) 0 calc(100% - .5rem)/.375rem .3125rem repeat-x,radial-gradient(circle,var(--color-glass-vent) .0625rem,var(--color-transparent) .09375rem) .1875rem calc(100% - .1875rem)/.375rem .3125rem repeat-x,linear-gradient(var(--color-divider),var(--color-divider)) 0 calc(100% - .875rem)/100% var(--border) no-repeat,linear-gradient(var(--color-surface-sunken),var(--color-surface-sunken)) bottom/100% .875rem no-repeat,var(--offer-card);box-shadow:var(--glass-card-lift),var(--glass-inner-band)}
 #offerings tr{grid-template-columns:repeat(3,minmax(0,1fr)) auto;grid-template-areas:"cpu cpu cpu price" "size ram disk traf" "loc loc type kind" "rel rel rel entry"}
-#offerings tr::before,.offer-card::before{content:"";position:absolute;inset:0;background:linear-gradient(112deg,var(--color-transparent) 5rem,var(--color-glass-streak-edge) 5.02rem 5.1rem,var(--color-glass-card-streak) 5.12rem 12rem,var(--color-transparent) 12.02rem 14rem,var(--color-glass-streak-faint) 14.02rem 17rem,var(--color-transparent) 17.02rem);border-radius:inherit;-webkit-mask-image:linear-gradient(var(--color-text),var(--color-transparent) 85%);mask-image:linear-gradient(var(--color-text),var(--color-transparent) 85%);pointer-events:none}
+#offerings tr::before,.offer-card::before{content:"";position:absolute;inset:0;background:linear-gradient(112deg,var(--color-transparent) 5rem,var(--color-glass-streak-edge) 5.12rem,var(--color-glass-card-streak) 5.3rem 11.7rem,var(--color-transparent) 12.2rem 14rem,var(--color-glass-streak-faint) 14.2rem 16.7rem,var(--color-transparent) 17.2rem);border-radius:inherit;-webkit-mask-image:linear-gradient(var(--color-text),var(--color-transparent) 85%);mask-image:linear-gradient(var(--color-text),var(--color-transparent) 85%);pointer-events:none}
 #offerings tr::after,.offer-card::after{content:"";position:absolute;inset:calc(var(--border) * -1);padding:var(--border-thick);background:var(--glass-rim);border-radius:inherit;-webkit-mask:linear-gradient(var(--color-text) 0 0) content-box,linear-gradient(var(--color-text) 0 0);-webkit-mask-composite:xor;mask:linear-gradient(var(--color-text) 0 0) content-box,linear-gradient(var(--color-text) 0 0);mask-composite:exclude;pointer-events:none}
 #offerings tr>*,.offer-card>*{position:relative}
 #offerings :is(th,td),#offerings :is(th,td):is(:first-child,:last-child){padding:0;border:0;background:none;text-align:start;white-space:normal}

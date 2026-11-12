@@ -2,14 +2,14 @@
   "schema": 1,
   "files": {
     "app-icon.svg": "528525cb469801db8a0ee7ad33be72eb3edb3c716066daa497ca1721c2b1ec35",
-    "art-band-dark.svg": "35d7c7c938dafd42e621b1c80937938a9c25535b1e0d71c6bc6de380ac2daca1",
-    "art-band-light.svg": "dc5c9170f64effb05544d8cb79734bd20182808f8a8753e5b45517c7efb9b000",
+    "art-band-dark.svg": "66667a4d9445607de3267c916ee0ef5e8c7e3e3e4719ffb95dd2b449e455d25c",
+    "art-band-light.svg": "475b5d7e6f18d982486ace27cce95dafb3d8f046760683d930ed9e52bcb39d5d",
     "art-hero-dark.svg": "2564495a4f0c3f3e1f03c0a9a87f3a03164bf1ea41d8e9aadb9b7d45fb56650e",
     "art-hero-light.svg": "810d80df6c2a3245d0a826284b18235e8eed3afc94047d49aefa8c71fdd77bbd",
-    "art-rail-end-dark.svg": "1d5e5ce10dd328d0fd5dfaa5a7db95e129d14409c9b1833d1ca566cc4624d552",
-    "art-rail-end-light.svg": "be85f39ecbf7d28e19effa144d43b85f95cc13e87998d856ef661e0dc6b113be",
-    "art-rail-start-dark.svg": "8a1f66ac62ccd8db8ce2339c01d7cb05afab90982043e98b534b34fc69b54e34",
-    "art-rail-start-light.svg": "a38374884bc2f4e903d912dada01cd678feeed90fffa748c46f4a06e71331304",
+    "art-rail-end-dark.svg": "7962123e3e5c7761af38e276e2f8c5a3e3e8753ce90d483c87b90b92e6d15772",
+    "art-rail-end-light.svg": "f703d1bf17defdaa55baf5b4b3d7fa72dc4a3ec1101ea0d15a01fcc6a3b31a05",
+    "art-rail-start-dark.svg": "4c19b92e9b922713b07c199a2149d6cc22e3c08d25bf00b6299ad88a2a16b785",
+    "art-rail-start-light.svg": "3b0bf0862d2b507038ed9f50ff61efce561cd3c98ba464ee1d4027e42bd9ab1b",
     "art-strip-dark.svg": "3a77c3020abda1e320fc638fedb8f1d2f1f4168affffa1f4d1aaf58315039045",
     "art-strip-light.svg": "7f3df73ad64ad656a9e806c51848b4185b600348b4d18d8f26ea37b32bb33545",
     "geist-mono-ofl.txt": "1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f",
@@ -19,7 +19,7 @@
     "lockup.svg": "96eb01e87cb0f2b0f4e9a0d2840b17c05c8df58256c7de2c4399944794233dbe",
     "logo-small.svg": "6d2a7df4fa4a751496447dead03f337ba33f94d07adab73c5fe8847816404a7f",
     "logo.svg": "a903da7a8f9506c4ab2a86cbb299c68b7b70570b07716cc6a312d27d73118b73",
-    "site.css": "356497348021a20c7b487c60e96b3ad6d9ccaca27c722c7986aedcebf69037ce",
-    "theme.json": "a91dc57e3c731733d80731e3bce548d6d5bdae1d266199eef2ea511341ac136b"
+    "site.css": "eecd37c56002e66d3fa107b8d569c06911513f6c3689a646fe9329a0b99df688",
+    "theme.json": "31d5b07a2456efc8666bfb9697ac05b795b48c6faf52098bd0769a6c499bee2c"
   }
 }
