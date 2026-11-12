@@ -1366,7 +1366,7 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 #offerings :is(.type,.traf){text-align:end}
 }
 
-.provider-card{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;grid-template-areas:"title title title score" "hosts loc loc type" "cpus cpus best best" "totals totals totals totals" "rel rel rel entry"}
+.provider-card{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;grid-template-areas:"title title title score" "hosts loc loc type" "cpus cpus best best" "totals totals totals totals" "rel rel deposit entry"}
 .offer-card__name{font-size:inherit;font-weight:calc(var(--weight-medium) + 50);letter-spacing:normal}
 .offer-card__name a{color:var(--color-text);text-decoration-line:none}
 .offer-card__name a:is(:hover,:focus-visible){text-decoration-line:underline}
@@ -1379,13 +1379,14 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 .provider-card>.cpus{grid-area:cpus}
 .provider-card>.best{grid-area:best}
 .provider-card>.rel{grid-area:rel}
+.provider-card>.deposit{grid-area:deposit}
 .provider-card>.totals{grid-area:totals;display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);padding-block-start:var(--space-2);border-block-start:var(--border) solid var(--color-divider)}
 .offer-card__from{color:var(--color-text-muted);font-size:var(--text-sm);font-weight:var(--weight-regular);letter-spacing:normal}
 .provider-card>.entry{grid-area:entry;align-self:end;text-align:end}
 .provider-card>.type{display:flex;flex-wrap:wrap;gap:var(--space-1);align-content:start}
 .provider-cards+.pager{margin:0;padding:var(--space-4) 0}
 @media not all and (min-width:40em){
-.provider-card{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"title title score" "hosts loc type" "cpus cpus cpus" "best best best" "totals totals totals" "rel rel entry"}
+.provider-card{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"title title score" "hosts loc type" "cpus cpus cpus" "best best best" "totals totals totals" "rel deposit entry"}
 .provider-card>.type{justify-content:end}
 }
 
