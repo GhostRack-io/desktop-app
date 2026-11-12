@@ -756,6 +756,10 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .facts--inline dd>.flag{margin-inline-end:0}
 
 @media (min-width:40em){.facts:not(.facts--inline)>div{grid-template-columns:minmax(6rem,9.5rem) minmax(min-content,1fr);align-items:baseline}}
+
+.projection dd{display:flex;flex-wrap:wrap;gap:0 var(--space-4)}
+.projection__part{color:var(--color-text-muted)}
+@media (min-width:40em){.projection dd{display:grid;grid-template-columns:repeat(3,minmax(0,9rem))}}
 .tiles--compact .tile{padding-block:var(--space-3)}
 .tile__unit{color:var(--color-text-muted);font-size:.875rem;letter-spacing:0}
 .tiles--compact .tile__value{font-size:var(--text-xl)}
