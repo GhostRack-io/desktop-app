@@ -506,9 +506,10 @@ main:focus{outline:none}
 .btn--quiet{--pad:.75rem;border-color:var(--color-transparent);background:var(--color-transparent);color:var(--color-text-secondary);padding-inline:var(--pad);box-shadow:none}
 .btn--quiet:not(:disabled):hover{border-color:var(--color-transparent);background:var(--color-surface-sunken);color:var(--color-text)}
 .tabs__link:hover,.subnav__link:hover{color:var(--color-text)}
-.btn--danger{border-color:var(--color-danger);background:var(--color-danger);color:var(--color-on-danger)}
+
+.btn--danger{border-color:var(--color-danger);background:var(--color-danger);color:var(--color-on-danger);box-shadow:0 .375rem 1rem -.375rem var(--color-glass-lift-soft)}
 .btn--danger:not(:disabled):hover{border-color:var(--color-danger-hover);background:var(--color-danger-hover);color:var(--color-on-danger)}
-.btn--quiet.btn--danger{border-color:var(--color-transparent);background:var(--color-transparent);color:var(--color-danger-text)}
+.btn--quiet.btn--danger{border-color:var(--color-transparent);background:var(--color-transparent);color:var(--color-danger-text);box-shadow:none}
 .btn--quiet.btn--danger:not(:disabled):hover{border-color:var(--color-danger);background:var(--color-transparent);color:var(--color-danger-text)}
 .btn--small{min-block-size:var(--control-height-sm);padding:.25rem .75rem;font-size:.875rem}
 .btn--lg{min-block-size:var(--control-height-lg);padding-inline:1.25rem;font-size:1rem}
