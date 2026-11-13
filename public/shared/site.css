@@ -1617,6 +1617,7 @@ form[data-action="offering.rent"]{display:flex}
 @media (min-width:40em){.totp-enroll{grid-template-columns:auto minmax(0,1fr)}}
 .banner-code{display:grid;gap:var(--space-3);max-inline-size:24rem}
 .qr{display:block;inline-size:11rem;max-inline-size:100%;block-size:auto;color:var(--color-term);background:var(--color-term-text);border-radius:var(--radius)}
+[data-vpn-qr] .qr{inline-size:18rem}
 @media not all and (min-width:40em){:is(.flow,.reveal){padding-inline:var(--space-4)}}
 
 
