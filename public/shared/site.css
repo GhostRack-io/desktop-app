@@ -1717,6 +1717,9 @@ form[data-action="offering.rent"]{display:flex}
 .notices__item[data-tone=read]>.notice{background:none;outline:var(--border) solid var(--color-border);outline-offset:calc(var(--border) * -1)}
 
 .ticket,.ticket>[data-live]{display:contents}
+
+.vpn-connection,.vpn-connection>[data-live],.vpn-connection__settings{display:contents}
+[data-action="vpn.create"]>.form{flex:1 1 100%}
 .thread{display:grid;gap:var(--space-3)}
 .message{display:grid;gap:var(--space-1);max-inline-size:48rem;padding:var(--space-3) var(--space-4);background:var(--s,var(--color-surface));border-radius:var(--radius)}
 .message__head{color:var(--color-text-muted);font-size:var(--text-sm)}
