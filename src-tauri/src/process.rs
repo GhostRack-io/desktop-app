@@ -97,19 +97,18 @@ impl Runner {
         long: bool,
     ) -> Result<Value> {
         let limit = Duration::from_secs(if long { 360 } else { 90 });
-        self.run_with_notices(wallet, args, secret, Some(limit))
+        self.run_with_notices(wallet, args, secret, limit)
             .await
             .map(|(value, _)| value)
     }
     /// [`Self::run`] that also returns the tool's standard error, where
-    /// Ghost prints its notices, and waits at most `limit` (without one,
-    /// until the tool exits or the app closes).
+    /// Ghost prints its notices, and waits at most `limit`.
     pub async fn run_with_notices(
         &self,
         wallet: bool,
         args: &[String],
         secret: Option<Secret>,
-        limit: Option<Duration>,
+        limit: Duration,
     ) -> Result<(Value, String)> {
         let mut command = Command::new(if wallet { &self.wallet } else { &self.ghost });
         // The sidecars are console programs; keep their piped JSON interface
@@ -201,13 +200,6 @@ impl Runner {
                 ));
             }
             Ok((v, String::from_utf8_lossy(&err).into_owned()))
-        };
-        let Some(limit) = limit else {
-            let result = task.await;
-            if result.is_err() {
-                let _ = child.kill().await;
-            }
-            return result;
         };
         match tokio::time::timeout(limit, task).await {
             Ok(result) => {

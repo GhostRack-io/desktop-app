@@ -603,12 +603,12 @@ impl Controller {
         secret: Option<Secret>,
     ) -> Result<Value> {
         let limit = Duration::from_secs(if long { 360 } else { 90 });
-        self.ghost_within(s, args, seed, recovery, Some(limit), secret, true)
+        self.ghost_within(s, args, seed, recovery, limit, secret, true)
             .await
             .map(|(value, _)| value)
     }
-    /// [`Self::ghost_with_input`] that waits at most `limit` (without one,
-    /// until Ghost exits) and also returns Ghost's notices. Without
+    /// [`Self::ghost_with_input`] that waits at most `limit` and also
+    /// returns Ghost's notices. Without
     /// `compact`, Ghost prints JSON and the notices a person reads, such as
     /// its quote of a website request.
     #[allow(clippy::too_many_arguments)]
@@ -618,7 +618,7 @@ impl Controller {
         args: Vec<String>,
         seed: Option<PathBuf>,
         recovery: Option<PathBuf>,
-        limit: Option<Duration>,
+        limit: Duration,
         secret: Option<Secret>,
         compact: bool,
     ) -> Result<(Value, String)> {
@@ -648,7 +648,7 @@ impl Controller {
     /// from Ghost's quote of the website request: None when it keeps none.
     async fn forced_backup(&self, s: &Settings, intent: &str) -> Result<Option<String>> {
         let args = vec!["account".into(), "approve".into(), intent.to_owned()];
-        let limit = Some(Duration::from_secs(90));
+        let limit = Duration::from_secs(90);
         let (_, notices) = self
             .ghost_within(s, args, None, None, limit, None, false)
             .await?;
@@ -2137,25 +2137,15 @@ impl Controller {
         }
         op.state = "authorizing".into();
         self.store.put(op.clone())?;
-        // A backup kept first may take hours; Ghost waits for it, then
-        // for the restore key's offer within its own limit.
-        let limit = if op.review["forced_backup"].is_string() {
-            None
-        } else {
-            Some(Duration::from_secs(360))
-        };
         let result = self
-            .ghost_within(
+            .ghost(
                 s,
                 vec!["account".into(), "approve".into(), intent, "--yes".into()],
                 None,
                 recovery,
-                limit,
-                None,
                 true,
             )
-            .await
-            .map(|(value, _)| value);
+            .await;
         match result {
             Ok(v) => {
                 op.state = "authorized".into();
