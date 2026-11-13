@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 use std::{
     fs,
     path::{Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::Mutex;
 use url::Url;
@@ -103,6 +103,11 @@ pub enum Request {
         id: String,
         recovery_seed_file: Option<PathBuf>,
     },
+    /// Keeps a restore's destination whose deletion waits (`ghost instance
+    /// keep`), then reviews the restore again.
+    KeepRestoreDestination {
+        id: String,
+    },
     PrepareRotation {
         file: PathBuf,
     },
@@ -151,6 +156,14 @@ impl Outcome {
             },
         }
     }
+}
+/// Ghost's notice of the backup kept first (item 267) among `notices`.
+pub fn forced_backup_notice(notices: &str) -> Option<String> {
+    notices
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with("Keeps a backup first"))
+        .map(str::to_owned)
 }
 fn now() -> u64 {
     SystemTime::now()
@@ -589,8 +602,28 @@ impl Controller {
         long: bool,
         secret: Option<Secret>,
     ) -> Result<Value> {
+        let limit = Duration::from_secs(if long { 360 } else { 90 });
+        self.ghost_within(s, args, seed, recovery, Some(limit), secret, true)
+            .await
+            .map(|(value, _)| value)
+    }
+    /// [`Self::ghost_with_input`] that waits at most `limit` (without one,
+    /// until Ghost exits) and also returns Ghost's notices. Without
+    /// `compact`, Ghost prints JSON and the notices a person reads, such as
+    /// its quote of a website request.
+    #[allow(clippy::too_many_arguments)]
+    async fn ghost_within(
+        &self,
+        s: &Settings,
+        args: Vec<String>,
+        seed: Option<PathBuf>,
+        recovery: Option<PathBuf>,
+        limit: Option<Duration>,
+        secret: Option<Secret>,
+        compact: bool,
+    ) -> Result<(Value, String)> {
         let mut a = vec![
-            "--compact".into(),
+            if compact { "--compact" } else { "--json" }.into(),
             "--api-url".into(),
             s.api_url.clone(),
             "--seed-file".into(),
@@ -603,9 +636,23 @@ impl Controller {
             ]);
         }
         a.extend(args);
-        let mut v = self.runner.run(false, &a, secret, long).await?;
+        let (mut v, notices) = self
+            .runner
+            .run_with_notices(false, &a, secret, limit)
+            .await?;
         public_money(&mut v);
-        Ok(v)
+        Ok((v, notices))
+    }
+    /// The line Ghost prints when a restore over an older instance keeps a
+    /// backup of it first (item 267), with its most and its lock, read
+    /// from Ghost's quote of the website request: None when it keeps none.
+    async fn forced_backup(&self, s: &Settings, intent: &str) -> Result<Option<String>> {
+        let args = vec!["account".into(), "approve".into(), intent.to_owned()];
+        let limit = Some(Duration::from_secs(90));
+        let (_, notices) = self
+            .ghost_within(s, args, None, None, limit, None, false)
+            .await?;
+        Ok(forced_backup_notice(&notices))
     }
     async fn wallet(
         &self,
@@ -944,6 +991,7 @@ impl Controller {
                 id,
                 recovery_seed_file,
             } => self.approve_restore(&s, &id, recovery_seed_file).await,
+            Request::KeepRestoreDestination { id } => self.keep_restore_destination(&s, &id).await,
             Request::PrepareRotation { file } => {
                 absolute(&file)?;
                 let old = self
@@ -1879,9 +1927,16 @@ impl Controller {
         if let Some(object) = request.as_object_mut() {
             object.remove("approve_command");
         }
+        // A restore over an older instance keeps a backup of it first
+        // (item 267), at the renter's cost: Ghost names it in its quote.
+        let forced = if kind == "restore_backup" {
+            self.forced_backup(s, &intent).await?
+        } else {
+            None
+        };
         let mut op = self.op(s, "restore")?;
         op.intent_id = Some(intent);
-        op.review = json!({"request":authoritative,"backup":backup,"destination":destination,"account":account,"matching_recovery_files":recovery,"restore_charge_microusd":charge,"charge_already_committed":authoritative["started_job_id"].is_string()});
+        op.review = json!({"request":authoritative,"backup":backup,"destination":destination,"account":account,"matching_recovery_files":recovery,"restore_charge_microusd":charge,"charge_already_committed":authoritative["started_job_id"].is_string(),"forced_backup":forced});
         if authoritative["completed_job_id"].is_string() {
             op.state = "authorized".into();
             op.job_id = authoritative["completed_job_id"]
@@ -1890,6 +1945,40 @@ impl Controller {
         }
         self.store.put(op.clone())?;
         Ok(json!(op))
+    }
+    async fn keep_restore_destination(&self, s: &Settings, id: &str) -> Result<Value> {
+        let op = self.store.get(id)?;
+        let operation = &op.review["request"]["operation"];
+        if op.kind != "restore"
+            || op.state == "authorized"
+            || operation["kind"] != "restore_backup"
+            || !op.review["destination"]["delete_at"].is_string()
+        {
+            return Err(Failure::new(
+                "approval_state",
+                "This restore's destination is not being deleted.",
+            ));
+        }
+        self.check_account_binding(s, &op).await?;
+        let instance_id = field(operation, "instance_id")?;
+        self.ghost(
+            s,
+            vec!["instance".into(), "keep".into(), instance_id],
+            None,
+            None,
+            false,
+        )
+        .await?;
+        let intent = op
+            .intent_id
+            .clone()
+            .ok_or_else(|| Failure::new("approval_state", "The restore request is missing."))?;
+        let fresh = self.inspect_restore(s, &intent).await?;
+        // The new review replaces this one.
+        let mut replaced = op;
+        replaced.state = "discarded".into();
+        self.store.put(replaced)?;
+        Ok(fresh)
     }
     async fn approve_restore(
         &self,
@@ -1938,6 +2027,17 @@ impl Controller {
                 "approval_changed",
                 "The restore changed. Inspect and review it again.",
             ));
+        }
+        // The backup kept first is accepted with the restore: it must be
+        // the one reviewed. A started job has accepted it already.
+        if view["operation"]["kind"] == "restore_backup" && !view["started_job_id"].is_string() {
+            let forced = self.forced_backup(s, &intent).await?;
+            if json!(forced) != op.review["forced_backup"] {
+                return Err(Failure::new(
+                    "approval_changed",
+                    "The restore changed. Inspect and review it again.",
+                ));
+            }
         }
         // A resumed job keeps its accepted quote. Before first admission, check
         // the mutable creation/reservation and gateway prices shown in review.
@@ -2037,15 +2137,25 @@ impl Controller {
         }
         op.state = "authorizing".into();
         self.store.put(op.clone())?;
+        // A backup kept first may take hours; Ghost waits for it, then
+        // for the restore key's offer within its own limit.
+        let limit = if op.review["forced_backup"].is_string() {
+            None
+        } else {
+            Some(Duration::from_secs(360))
+        };
         let result = self
-            .ghost(
+            .ghost_within(
                 s,
                 vec!["account".into(), "approve".into(), intent, "--yes".into()],
                 None,
                 recovery,
+                limit,
+                None,
                 true,
             )
-            .await;
+            .await
+            .map(|(value, _)| value);
         match result {
             Ok(v) => {
                 op.state = "authorized".into();
