@@ -358,6 +358,103 @@ async fn wrong_recovery_seed_is_not_registered_and_changed_quote_is_not_authoriz
     );
 }
 
+const FORCED: &str = "Keeps a backup first: up to $1.50, locked until 2026-11-20.";
+
+/// A restore over an older instance keeps a backup of it first (item 267):
+/// the review names it as Ghost does, and a different one is not
+/// authorized.
+#[tokio::test]
+async fn the_backup_kept_first_is_reviewed_and_must_not_change() {
+    let f = Fixture::new();
+    let intent = uuid::Uuid::new_v4().to_string();
+    let backup_id = uuid::Uuid::new_v4().to_string();
+    let operation =
+        json!({"kind":"restore_backup","instance_id":"destination","backup_id":backup_id});
+    let backup = json!({"backup_id":backup_id,"instance_id":"source","destination":"gigahost_s3","recipient_key_fingerprint":"older-key","size_bytes":1073741824_u64,"restore_charge_microusd_per_gib":"1000","locked_until":"2026-11-20T00:00:00Z","wrapped_data_key":"secret"});
+    f.scenario(json!({"operation":operation,"backup":backup,"instance":{"instance_id":"destination"},"forced_backup":FORCED}));
+    let op = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
+        .await
+        .unwrap();
+    assert_eq!(op["review"]["forced_backup"], FORCED);
+    assert_eq!(
+        op["review"]["backup"]["locked_until"],
+        "2026-11-20T00:00:00Z"
+    );
+    assert!(op["review"]["backup"]["wrapped_data_key"].is_null());
+    let id = op["id"].as_str().unwrap();
+    let recovery = f.root.path().join("older.seed");
+    fs::write(&recovery, "disposable").unwrap();
+    // The quote now keeps another backup: review it again.
+    f.scenario(json!({"operation":operation,"backup":backup,"instance":{"instance_id":"destination"},"forced_backup":"Keeps a backup first: up to $9.00, locked until 2026-11-20."}));
+    assert_eq!(
+        f.call(json!({"action":"approve_restore","id":id,"recovery_seed_file":recovery}))
+            .await
+            .unwrap_err()
+            .code,
+        "approval_changed"
+    );
+    f.scenario(json!({"operation":operation,"backup":backup,"instance":{"instance_id":"destination"},"forced_backup":FORCED}));
+    let result = f
+        .call(json!({"action":"approve_restore","id":id,"recovery_seed_file":recovery}))
+        .await
+        .unwrap();
+    assert_eq!(result["job_id"], "job-one");
+    // A new instance keeps none.
+    let unforced = f.restore(false);
+    let operation =
+        f.controller.store.get(&unforced).unwrap().review["request"]["operation"].clone();
+    f.scenario(json!({"operation":operation,"forced_backup":FORCED}));
+    assert_eq!(
+        f.call(json!({"action":"approve_restore","id":unforced,"recovery_seed_file":recovery}))
+            .await
+            .unwrap_err()
+            .code,
+        "approval_changed"
+    );
+}
+
+/// A destination whose deletion waits is kept from the review, which is
+/// then read again (item 267).
+#[tokio::test]
+async fn keep_it_keeps_the_destination_and_reviews_the_restore_again() {
+    let f = Fixture::new();
+    let intent = uuid::Uuid::new_v4().to_string();
+    let backup_id = uuid::Uuid::new_v4().to_string();
+    let operation =
+        json!({"kind":"restore_backup","instance_id":"destination","backup_id":backup_id});
+    let backup = json!({"backup_id":backup_id,"instance_id":"source","destination":"gigahost_s3","recipient_key_fingerprint":"older-key","size_bytes":1073741824_u64,"restore_charge_microusd_per_gib":"1000"});
+    f.scenario(json!({"operation":operation,"backup":backup,"instance":{"instance_id":"destination","delete_at":"2026-11-13T12:00:00Z"}}));
+    let op = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
+        .await
+        .unwrap();
+    assert_eq!(
+        op["review"]["destination"]["delete_at"],
+        "2026-11-13T12:00:00Z"
+    );
+    assert!(op["review"]["forced_backup"].is_null());
+    let id = op["id"].as_str().unwrap();
+    let fresh = f
+        .call(json!({"action":"keep_restore_destination","id":id}))
+        .await
+        .unwrap();
+    let args: Vec<String> =
+        serde_json::from_slice(&fs::read(f.root.path().join("ghost-args.json")).unwrap()).unwrap();
+    assert!(args.ends_with(&["instance".into(), "keep".into(), "destination".into()]));
+    assert!(fresh["review"]["destination"]["delete_at"].is_null());
+    assert_eq!(fresh["state"], "prepared");
+    assert_eq!(f.controller.store.get(id).unwrap().state, "discarded");
+    // Kept, there is nothing more to keep.
+    assert_eq!(
+        f.call(json!({"action":"keep_restore_destination","id":fresh["id"]}))
+            .await
+            .unwrap_err()
+            .code,
+        "approval_state"
+    );
+}
+
 #[tokio::test]
 async fn rotation_discards_only_drafts_for_the_rotated_account() {
     let f = Fixture::new();

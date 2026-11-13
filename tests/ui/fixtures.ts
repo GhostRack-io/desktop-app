@@ -64,6 +64,14 @@ export async function openDesktop(page: Page, state = structuredClone(fixture)) 
       if(request.action === 'discard_payment') { (fixture.operations[0] as any).state='discarded'; return {}; }
       if(request.action === 'inspect_restore') {
         const op={id:'restore-local-test',kind:'restore',state:'prepared',created_at:1700000000,review:{request:{operation:{kind:'restore_backup',instance_id:'destination-id'},expires_at:'2099-01-01T00:00:00Z'},backup:{backup_id:'backup-id',instance_id:'source-id',recipient_key_fingerprint:'public-fingerprint'},destination:{hostname:'staging-target'},account:{account_alias:'gh-test-account'},matching_recovery_files:['/tmp/older-recovery.seed'],restore_charge_microusd:'1954',charge_already_committed:false}};
+        // An older instance whose deletion waits (item 267).
+        if(request.reference === 'a0000000-0000-4000-8000-000000000267') Object.assign(op.review,{forced_backup:'Keeps a backup first: up to $1.50, locked until 2026-11-20.',backup:{...op.review.backup,locked_until:'2026-11-20T00:00:00Z'},destination:{...op.review.destination,delete_at:'2026-11-13T12:00:00Z'}});
+        (fixture.operations as any[]).push(op); return op;
+      }
+      if(request.action === 'keep_restore_destination') {
+        const kept=(fixture.operations as any[]).find(op=>op.id === request.id);
+        kept.state='discarded';
+        const op={...kept,id:'restore-kept-test',state:'prepared',review:{...kept.review,destination:{hostname:'staging-target'}}};
         (fixture.operations as any[]).push(op); return op;
       }
       if(request.action === 'approve_restore') { (fixture.operations.at(-1) as any).state='authorized'; return {job_id:'job-id'}; }

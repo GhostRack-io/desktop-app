@@ -214,6 +214,24 @@ test('restore review shows exact billing and requires explicit authorization',as
   await page.getByRole('button',{name:'Authorize restore',exact:true}).click();
   expect(await page.evaluate(()=>(window as any).calls.find((r:any)=>r.action === 'approve_restore').recovery_seed_file)).toBe('/tmp/older-recovery.seed');
 });
+test('restore over an older instance names the backup kept first and keeps a destination being deleted',async({page})=>{
+  await page.getByRole('link',{name:'Account'}).click();
+  await page.getByLabel('Approval link or request ID').fill('a0000000-0000-4000-8000-000000000267');
+  await page.getByRole('button',{name:'Review request'}).click();
+  const dialog=page.getByRole('dialog');
+  await expect(dialog.getByText('Keeps a backup first: up to $1.50, locked until 2026-11-20.',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('Locked until',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('Deleting at',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Authorize restore',exact:true})).toBeDisabled();
+  await page.screenshot({animations:'disabled',path:'test-results/restore-review-forced.png'});
+  await page.getByRole('button',{name:'Keep it',exact:true}).click();
+  await expect(dialog.getByText('Deleting at',{exact:true})).toHaveCount(0);
+  await expect(dialog.getByText('Keeps a backup first: up to $1.50, locked until 2026-11-20.',{exact:true})).toBeVisible();
+  await page.getByLabel('I reviewed the destination and charge, and authorize this restore.').check();
+  await page.getByRole('button',{name:'Authorize restore',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Restore authorized');
+  expect(await page.evaluate(()=>(window as any).calls.find((r:any)=>r.action === 'approve_restore').id)).toBe('restore-kept-test');
+});
 test('rotation offers a default replacement location and a separate confirmation',async({page})=>{
   await page.getByRole('link',{name:'Account'}).click();
   await page.getByRole('button',{name:'Rotate account keys',exact:true}).click();

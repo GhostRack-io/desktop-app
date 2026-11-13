@@ -10,12 +10,15 @@ secret = json.loads(sys.stdin.readline()) if '--input-stdin' in args else {}
 scenario_file = Path(__file__).with_name('scenario.json')
 scenario = json.loads(scenario_file.read_text()) if scenario_file.exists() else {}
 def option(name): return args[args.index(name) + 1] if name in args else None
+# The wallet is given --rpc; ghost is given --api-url, and --json for its
+# notices.
+wallet = '--rpc' in args
 def reply(value):
-    if '--json' in args: value = {'schema_version': 1, **value}
+    if wallet: value = {'schema_version': 1, **value}
     print(json.dumps(value)); sys.exit(0)
 def fail(code):
     value = {'code': code, 'message': 'Simulated sidecar failure'}
-    print(json.dumps(value if '--json' in args else {'error': value}), file=sys.stderr if '--json' in args else sys.stdout)
+    print(json.dumps(value if wallet else {'error': value}), file=sys.stderr if wallet else sys.stdout)
     sys.exit(1)
 
 def wallet_address():
@@ -59,7 +62,16 @@ if 'signup' in args or 'link-github' in args or 'unlink-github' in args or 'gith
     if 'signup' in args or 'link-github' in args: reply({'claim_id':'claim-one','claim_url':scenario.get('claim_url','https://ghostrack.io/trial/start?claim=claim-one'),'expires_at':'2026-10-16T12:10:00Z'})
     reply({'status':scenario.get('claim_status','pending'),'account_alias':None,'reason':None,'expires_at':'2026-10-16T12:10:00Z'})
 if 'offering' in args: reply(scenario['offering'])
+if 'keep' in args:
+    Path(__file__).with_name('ghost-args.json').write_text(json.dumps(args))
+    scenario['instance'].pop('delete_at', None)
+    scenario_file.write_text(json.dumps(scenario))
+    reply(scenario['instance'])
+if 'instance' in args and 'get' in args: reply(scenario['instance'])
+if 'backup' in args and 'get' in args: reply(scenario['backup'])
 if 'approve' in args:
+    if '--yes' not in args and '--json' in args and scenario.get('forced_backup'):
+        print('Backup 1 of web\n' + scenario['forced_backup'], file=sys.stderr)
     if '--yes' not in args: reply({'request':{'operation':scenario['operation'],'started_job_id':scenario.get('started_job_id')}})
     if not option('--recovery-seed-file'): fail('recovery_key_missing')
     if scenario.get('fail_authorization'): fail('destination_unavailable')
