@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::Mutex;
@@ -136,7 +137,7 @@ pub enum Request {
 pub struct Controller {
     pub store: Store,
     runner: Runner,
-    mutation: Mutex<()>,
+    mutation: Arc<Mutex<()>>,
 }
 #[derive(Serialize)]
 struct Outcome {
@@ -154,6 +155,33 @@ impl Outcome {
                 data: None,
                 error: Some(e),
             },
+        }
+    }
+}
+/// A restore's state while Ghost backs up its destination first.
+const BACKING_UP: &str = "backing_up";
+/// Records how a restore's authorization by Ghost ended.
+fn settle_restore(
+    store: &crate::store::Store,
+    op: &mut crate::store::Operation,
+    result: Result<Value>,
+) -> Result<Value> {
+    match result {
+        Ok(v) => {
+            op.state = "authorized".into();
+            op.error = None;
+            op.job_id = v["job_id"]
+                .as_str()
+                .or_else(|| v["completed_job_id"].as_str())
+                .map(str::to_owned);
+            store.put(op.clone())?;
+            Ok(v)
+        }
+        Err(e) => {
+            op.state = "needs_resume".into();
+            op.error = Some(e.message.clone());
+            store.put(op.clone())?;
+            Err(e)
         }
     }
 }
@@ -575,8 +603,38 @@ impl Controller {
         Ok(Self {
             store: Store::new(root)?,
             runner,
-            mutation: Mutex::new(()),
+            mutation: Arc::new(Mutex::new(())),
         })
+        .and_then(Self::interrupted_backups)
+    }
+    /// A restore that was backing up first when the app closed lost its
+    /// Ghost process: its authorization is resumed from the review.
+    fn interrupted_backups(self) -> Result<Self> {
+        for mut op in self.store.operations()? {
+            if op.state == BACKING_UP {
+                op.state = "needs_resume".into();
+                op.error =
+                    Some("The app closed while backing up. Resume the authorization.".into());
+                self.store.put(op)?;
+            }
+        }
+        Ok(self)
+    }
+    /// Refuses a change of account keys while a restore backs up first: its
+    /// Ghost process authorizes the restore with the current keys.
+    fn no_backup_running(&self) -> Result<()> {
+        if self
+            .store
+            .operations()?
+            .iter()
+            .any(|op| op.state == BACKING_UP)
+        {
+            return Err(Failure::new(
+                "restore_backing_up",
+                "A restore is backing up first. Change account keys after it is authorized.",
+            ));
+        }
+        Ok(())
     }
     fn seed(&self, s: &Settings) -> Result<PathBuf> {
         s.ghost_seed_file.clone().map_or_else(ghost_default, Ok)
@@ -622,6 +680,23 @@ impl Controller {
         secret: Option<Secret>,
         compact: bool,
     ) -> Result<(Value, String)> {
+        let a = self.ghost_args(s, args, seed, recovery, compact)?;
+        let (mut v, notices) = self
+            .runner
+            .run_with_notices(false, &a, secret, limit)
+            .await?;
+        public_money(&mut v);
+        Ok((v, notices))
+    }
+    /// Ghost's command line for `args` with the app's account and API.
+    fn ghost_args(
+        &self,
+        s: &Settings,
+        args: Vec<String>,
+        seed: Option<PathBuf>,
+        recovery: Option<PathBuf>,
+        compact: bool,
+    ) -> Result<Vec<String>> {
         let mut a = vec![
             if compact { "--compact" } else { "--json" }.into(),
             "--api-url".into(),
@@ -636,12 +711,7 @@ impl Controller {
             ]);
         }
         a.extend(args);
-        let (mut v, notices) = self
-            .runner
-            .run_with_notices(false, &a, secret, limit)
-            .await?;
-        public_money(&mut v);
-        Ok((v, notices))
+        Ok(a)
     }
     /// The line Ghost prints when a restore over an older instance keeps a
     /// backup of it first (item 267), with its most and its lock, read
@@ -731,6 +801,7 @@ impl Controller {
             account_memo: None,
             account_epoch: None,
             job_id: None,
+            error: None,
         })
     }
     pub async fn dispatch(&self, request: Request) -> Result<Value> {
@@ -836,6 +907,7 @@ impl Controller {
                 line,
                 replace,
             } => {
+                self.no_backup_running()?;
                 // The line is the account key itself: it is moved into a
                 // buffer zeroized on drop at once, and no failure here
                 // repeats it.
@@ -993,6 +1065,7 @@ impl Controller {
             } => self.approve_restore(&s, &id, recovery_seed_file).await,
             Request::KeepRestoreDestination { id } => self.keep_restore_destination(&s, &id).await,
             Request::PrepareRotation { file } => {
+                self.no_backup_running()?;
                 absolute(&file)?;
                 let old = self
                     .ghost(&s, vec!["account".into(), "show".into()], None, None, false)
@@ -1018,6 +1091,7 @@ impl Controller {
                 Ok(json!(op))
             }
             Request::RotateKeys { id } => {
+                self.no_backup_running()?;
                 let mut op = self.store.get(&id)?;
                 if op.kind != "rotation"
                     || !["prepared", "uncertain", "submitting"].contains(&op.state.as_str())
@@ -1950,7 +2024,7 @@ impl Controller {
         let op = self.store.get(id)?;
         let operation = &op.review["request"]["operation"];
         if op.kind != "restore"
-            || op.state == "authorized"
+            || ["authorized", BACKING_UP].contains(&op.state.as_str())
             || operation["kind"] != "restore_backup"
             || !op.review["destination"]["delete_at"].is_string()
         {
@@ -1991,6 +2065,16 @@ impl Controller {
             return Err(Failure::new(
                 "approval_state",
                 "This restore has already been authorized or is unavailable.",
+            ));
+        }
+        // One Ghost process per request: another review of it may be
+        // backing up first.
+        if self.store.operations()?.iter().any(|other| {
+            other.kind == "restore" && other.state == BACKING_UP && other.intent_id == op.intent_id
+        }) {
+            return Err(Failure::new(
+                "restore_backing_up",
+                "This restore is backing up first. It continues when the backup is done.",
             ));
         }
         self.check_account_binding(s, &op).await?;
@@ -2135,43 +2219,46 @@ impl Controller {
                 self.store.save_settings(&settings)?;
             }
         }
+        let args = self.ghost_args(
+            s,
+            vec!["account".into(), "approve".into(), intent, "--yes".into()],
+            None,
+            recovery,
+            true,
+        )?;
+        // A backup kept first may take hours (item 267). Ghost waits for
+        // it, then for the restore key's offer within its own limit, in the
+        // background: the rest of the app keeps working meanwhile.
+        if op.review["forced_backup"].is_string() {
+            op.state = BACKING_UP.into();
+            op.error = None;
+            self.store.put(op.clone())?;
+            let (runner, store, mutation) = (
+                self.runner.clone(),
+                self.store.clone(),
+                self.mutation.clone(),
+            );
+            let id = op.id.clone();
+            tokio::spawn(async move {
+                let result = runner
+                    .run_with_notices(false, &args, None, None)
+                    .await
+                    .map(|(value, _)| value);
+                let _guard = mutation.lock().await;
+                if let Ok(mut op) = store.get(&id) {
+                    let _ = settle_restore(&store, &mut op, result);
+                }
+            });
+            return Ok(json!(op));
+        }
         op.state = "authorizing".into();
         self.store.put(op.clone())?;
-        // A backup kept first may take hours; Ghost waits for it, then
-        // for the restore key's offer within its own limit.
-        let limit = if op.review["forced_backup"].is_string() {
-            None
-        } else {
-            Some(Duration::from_secs(360))
-        };
         let result = self
-            .ghost_within(
-                s,
-                vec!["account".into(), "approve".into(), intent, "--yes".into()],
-                None,
-                recovery,
-                limit,
-                None,
-                true,
-            )
+            .runner
+            .run_with_notices(false, &args, None, Some(Duration::from_secs(360)))
             .await
             .map(|(value, _)| value);
-        match result {
-            Ok(v) => {
-                op.state = "authorized".into();
-                op.job_id = v["job_id"]
-                    .as_str()
-                    .or_else(|| v["completed_job_id"].as_str())
-                    .map(str::to_owned);
-                self.store.put(op)?;
-                Ok(v)
-            }
-            Err(e) => {
-                op.state = "needs_resume".into();
-                self.store.put(op)?;
-                Err(e)
-            }
-        }
+        settle_restore(&self.store, &mut op, result)
     }
     async fn finish_rotation(&self, s: &mut Settings, op: &mut Operation) -> Result<Value> {
         self.check_replacement(s, op).await?;

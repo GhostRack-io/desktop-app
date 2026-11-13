@@ -395,11 +395,30 @@ async fn the_backup_kept_first_is_reviewed_and_must_not_change() {
         "approval_changed"
     );
     f.scenario(json!({"operation":operation,"backup":backup,"instance":{"instance_id":"destination"},"forced_backup":FORCED}));
-    let result = f
+    // The backup runs in the background; the rest of the app keeps working.
+    let hold = f.root.path().join("hold");
+    fs::write(&hold, "").unwrap();
+    let started = f
         .call(json!({"action":"approve_restore","id":id,"recovery_seed_file":recovery}))
         .await
         .unwrap();
-    assert_eq!(result["job_id"], "job-one");
+    assert_eq!(started["state"], "backing_up");
+    assert!(f.payment().await.is_ok());
+    let rotation = f
+        .call(json!({"action":"prepare_rotation","file":f.root.path().join("next.seed")}))
+        .await
+        .unwrap_err();
+    assert_eq!(rotation.code, "restore_backing_up");
+    assert_eq!(
+        f.call(json!({"action":"approve_restore","id":id,"recovery_seed_file":recovery}))
+            .await
+            .unwrap_err()
+            .code,
+        "restore_backing_up"
+    );
+    fs::remove_file(&hold).unwrap();
+    let authorized = wait_for(&f, id, "authorized").await;
+    assert_eq!(authorized.job_id.as_deref(), Some("job-one"));
     // A new instance keeps none.
     let unforced = f.restore(false);
     let operation =
@@ -412,6 +431,55 @@ async fn the_backup_kept_first_is_reviewed_and_must_not_change() {
             .code,
         "approval_changed"
     );
+}
+
+/// A restore stopped while backing up resumes from its review, and a
+/// failure in the background is kept for the review (item 267).
+#[tokio::test]
+async fn a_backup_interrupted_or_failed_in_the_background_needs_resume() {
+    let f = Fixture::new();
+    let id = f.restore(false);
+    let mut op = f.controller.store.get(&id).unwrap();
+    op.state = "backing_up".into();
+    f.controller.store.put(op).unwrap();
+    let tool = f.root.path().join("tool.py");
+    let restarted = Controller::new(
+        f.controller.store.root.clone(),
+        Runner {
+            ghost: tool.clone(),
+            wallet: tool,
+        },
+    )
+    .unwrap();
+    let op = restarted.store.get(&id).unwrap();
+    assert_eq!(op.state, "needs_resume");
+    assert!(op.error.is_some());
+    // A failure in the background.
+    let mut op = op;
+    op.review["forced_backup"] = json!(FORCED);
+    f.controller.store.put(op).unwrap();
+    let operation = f.controller.store.get(&id).unwrap().review["request"]["operation"].clone();
+    f.scenario(json!({"operation":operation,"started_job_id":"job-one","fail_authorization":true}));
+    let recovery = f.root.path().join("older.seed");
+    fs::write(&recovery, "disposable").unwrap();
+    let started = f
+        .call(json!({"action":"approve_restore","id":id,"recovery_seed_file":recovery}))
+        .await
+        .unwrap();
+    assert_eq!(started["state"], "backing_up");
+    let failed = wait_for(&f, &id, "needs_resume").await;
+    assert_eq!(failed.error.as_deref(), Some("Simulated sidecar failure"));
+}
+
+async fn wait_for(f: &Fixture, id: &str, state: &str) -> ghostrack_desktop::store::Operation {
+    for _ in 0..500 {
+        let op = f.controller.store.get(id).unwrap();
+        if op.state == state {
+            return op;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    panic!("{id} never reached {state}");
 }
 
 /// A destination whose deletion waits is kept from the review, which is

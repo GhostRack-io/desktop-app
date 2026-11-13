@@ -74,6 +74,9 @@ if 'approve' in args:
         print('Backup 1 of web\n' + scenario['forced_backup'], file=sys.stderr)
     if '--yes' not in args: reply({'request':{'operation':scenario['operation'],'started_job_id':scenario.get('started_job_id')}})
     if not option('--recovery-seed-file'): fail('recovery_key_missing')
+    # A backup kept first runs while the hold file exists.
+    import time
+    while Path(__file__).with_name('hold').exists(): time.sleep(0.02)
     if scenario.get('fail_authorization'): fail('destination_unavailable')
     reply({'job_id':'job-one'})
 fail('unexpected_test_command')

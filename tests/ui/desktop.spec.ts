@@ -216,6 +216,7 @@ test('restore review shows exact billing and requires explicit authorization',as
 });
 test('restore over an older instance names the backup kept first and keeps a destination being deleted',async({page})=>{
   await page.getByRole('link',{name:'Account'}).click();
+  await page.evaluate(()=>{ (window as any).__snapshotCopies=true; });
   await page.getByLabel('Approval link or request ID').fill('a0000000-0000-4000-8000-000000000267');
   await page.getByRole('button',{name:'Review request'}).click();
   const dialog=page.getByRole('dialog');
@@ -229,8 +230,19 @@ test('restore over an older instance names the backup kept first and keeps a des
   await expect(dialog.getByText('Keeps a backup first: up to $1.50, locked until 2026-11-20.',{exact:true})).toBeVisible();
   await page.getByLabel('I reviewed the destination and charge, and authorize this restore.').check();
   await page.getByRole('button',{name:'Authorize restore',exact:true}).click();
-  await expect(page.getByRole('status')).toContainText('Restore authorized');
+  await expect(page.getByRole('status')).toContainText('Backing up first. The restore continues when it is done.');
   expect(await page.evaluate(()=>(window as any).calls.find((r:any)=>r.action === 'approve_restore').id)).toBe('restore-kept-test');
+  // The app stays usable while the backup runs; the restore has no action.
+  await expect(dialog).toBeHidden();
+  const restore=page.locator('.operation',{hasText:'Backing up first'});
+  await expect(restore).toBeVisible();
+  await expect(restore.getByRole('button')).toHaveCount(0);
+  await page.screenshot({animations:'disabled',path:'test-results/restore-backing-up.png'});
+  await page.getByRole('link',{name:'Wallet'}).click();
+  await expect(page.getByRole('link',{name:'Wallet'})).toHaveAttribute('aria-current','page');
+  // When the backup is done and the restore authorized, the app says so.
+  await page.evaluate(()=>{ const op=(window as any).__fixture?.operations?.find((op:any)=>op.id === 'restore-kept-test'); if(op) op.state='authorized'; window.dispatchEvent(new Event('focus')); });
+  await expect(page.getByRole('status')).toContainText('Restore authorized');
 });
 test('rotation offers a default replacement location and a separate confirmation',async({page})=>{
   await page.getByRole('link',{name:'Account'}).click();

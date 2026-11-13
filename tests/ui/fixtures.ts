@@ -25,9 +25,12 @@ export async function openDesktop(page: Page, state = structuredClone(fixture)) 
   });
   await page.addInitScript(({fixture,address})=>{
     (window as any).calls=[];
+    (window as any).__fixture=fixture;
     (window as any).__DESKTOP_TEST__=async(request:any)=>{
       (window as any).calls.push(request);
-      if(request.action === 'snapshot') return fixture;
+      // A copy when a test asks, as the native app's answer is: a later
+      // change to the fixture shows only after the next refresh.
+      if(request.action === 'snapshot') return (window as any).__snapshotCopies ? structuredClone(fixture) : fixture;
       if(request.action === 'save_settings') { fixture.settings=request.settings; return request.settings; }
       if(request.action === 'prepare_payout' || request.action === 'prepare_payout_address') {
         const balance=(fixture as any).provider_balance.data;
@@ -74,7 +77,12 @@ export async function openDesktop(page: Page, state = structuredClone(fixture)) 
         const op={...kept,id:'restore-kept-test',state:'prepared',review:{...kept.review,destination:{hostname:'staging-target'}}};
         (fixture.operations as any[]).push(op); return op;
       }
-      if(request.action === 'approve_restore') { (fixture.operations.at(-1) as any).state='authorized'; return {job_id:'job-id'}; }
+      if(request.action === 'approve_restore') {
+        const op=(fixture.operations as any[]).find(op=>op.id === request.id) || fixture.operations.at(-1);
+        // A backup kept first runs in the background (item 267).
+        if(op.review?.forced_backup) { op.state='backing_up'; return op; }
+        op.state='authorized'; return {job_id:'job-id'};
+      }
       if(request.action === 'prepare_rotation') {
         const op={id:'rotation-local-test',kind:'rotation',state:'prepared',created_at:1700000000,ghost_seed_file:'/tmp/disposable-account.seed',replacement_seed_file:request.file,review:{account:{account_alias:'gh-test-account'},replacement:{keys:{recovery_key_fingerprint:'new-public-fingerprint'}}}};
         (fixture.operations as any[]).push(op); return op;

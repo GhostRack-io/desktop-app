@@ -61,7 +61,11 @@ pub struct Operation {
     pub account_memo: Option<String>,
     pub account_epoch: Option<String>,
     pub job_id: Option<String>,
+    /// Why a restore that ran in the background stopped (item 267).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
+#[derive(Clone)]
 pub struct Store {
     pub root: PathBuf,
 }
