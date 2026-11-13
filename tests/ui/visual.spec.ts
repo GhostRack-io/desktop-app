@@ -64,9 +64,10 @@ test('the app bar wears the website theme: its opaque bar, an edge, the lockup a
   page.on('response',response=>{if(response.url().endsWith('.woff2')) fonts.push(`${response.url().split('/').pop()} ${response.status()}`);});
   await openDesktop(page);
   const bar=await page.locator('.desktop-bar').evaluate(node=>({image:getComputedStyle(node).backgroundImage,border:getComputedStyle(node).borderBottomStyle,rail:getComputedStyle(document.querySelector('.desktop-sidebar')!).backgroundColor}));
-  // Content scrolls under the bar, and text on a sticky layer needs an opaque one.
+  // Content scrolls under the bar, and text on a sticky layer needs an opaque one:
+  // its bottom layer, under the website's see-through art.
   expect(bar.image).toContain('linear-gradient');
-  expect(bar.image).not.toContain('rgba');
+  expect(bar.image.slice(bar.image.lastIndexOf('linear-gradient'))).not.toContain('rgba');
   expect(bar.rail).toMatch(/^rgb\(/);
   expect(bar.border).toBe('solid');
   const lockup=(await page.locator('.desktop-brand svg').boundingBox())!;
