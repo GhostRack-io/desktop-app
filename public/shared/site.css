@@ -648,7 +648,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .port-form{max-inline-size:none}
 .vpn-form{max-inline-size:none}
 .vpn-form .field>input{max-inline-size:40rem}
-.vpn-form .choices--solo,.vpn-form .choices--pair{grid-template-columns:repeat(auto-fill,minmax(min(100%,12rem),1fr))}
+.vpn-form .choices,.vpn-form .choices--solo,.vpn-form .choices--pair{grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))}
 .port-fields{display:flex;flex-wrap:wrap;gap:var(--space-4) var(--space-5)}
 .port-fields>.field{flex:0 0 8rem}
 
@@ -1479,7 +1479,7 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 :is([data-action="offering.rent"],[data-action="provider.review"])>.form{flex:1 1 100%}
 
 form[data-action="offering.rent"]{display:flex}
-#rent-gateway{grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr))}
+#rent-gateway{grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))}
 
 .offering-costs{display:grid;gap:var(--space-1);padding:var(--space-3) var(--space-4);background:var(--color-glass-well);box-shadow:inset 0 0 0 var(--border) var(--color-divider),var(--glass-inset);border-radius:var(--radius)}
 .offering-costs__title{font-weight:var(--weight-bold)}
@@ -1652,7 +1652,7 @@ form[data-action="offering.rent"]{display:flex}
 .settings-more--kept[open]>summary+*{margin-block-start:var(--space-3)}
 .settings-more>:is(.form,form:not(.flow)){padding:var(--space-4) var(--space-5);border:var(--border) solid var(--color-divider);background:var(--color-glass-well);box-shadow:var(--glass-inset);border-radius:var(--radius)}
 @media not all and (min-width:40em){.settings-more>:is(.form,form:not(.flow)){padding-inline:var(--space-4)}}
-.choices--wide{grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr))}
+.choices--wide{grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))}
 
 .prose--wide{max-inline-size:120ch}
 @media (min-width:40em){.data-table .num .cell-note{margin-inline-start:auto}}
