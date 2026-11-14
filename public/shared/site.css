@@ -646,6 +646,9 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .field--amount+.btn{align-self:flex-end}
 .action>.field__help{flex:1 0 100%}
 .port-form{max-inline-size:none}
+.vpn-form{max-inline-size:none}
+.vpn-form .field>input{max-inline-size:40rem}
+.vpn-form .choices--solo,.vpn-form .choices--pair{grid-template-columns:repeat(auto-fill,minmax(min(100%,12rem),1fr))}
 .port-fields{display:flex;flex-wrap:wrap;gap:var(--space-4) var(--space-5)}
 .port-fields>.field{flex:0 0 8rem}
 
