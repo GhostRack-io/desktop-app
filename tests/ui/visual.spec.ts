@@ -78,6 +78,21 @@ test('the app bar wears the website theme: its opaque bar, an edge, the lockup a
   expect([...new Set(fonts)].sort()).toEqual(['geist-mono.woff2 200','instrument-sans.woff2 200']);
 });
 
+test('only the content pane scrolls, over the backdrop drawn once as a bitmap',async({page})=>{
+  await page.setViewportSize({width:1180,height:600});
+  await openDesktop(page);
+  await page.getByRole('link',{name:'Settings'}).click();
+  await expect(page.locator('html')).toHaveAttribute('data-backdrop','');
+  const backdrop=await page.evaluate(()=>({image:getComputedStyle(document.body).backgroundImage,glows:getComputedStyle(document.body,'::before').display,art:getComputedStyle(document.body,'::after').display}));
+  expect(backdrop).toEqual({image:expect.stringContaining('blob:'),glows:'none',art:'none'});
+  await page.getByRole('button',{name:'Save settings'}).scrollIntoViewIfNeeded();
+  const scrolled=await page.evaluate(()=>({pane:document.querySelector('.desktop-scroll')!.scrollTop,window:scrollY}));
+  expect(scrolled.pane).toBeGreaterThan(0);
+  expect(scrolled.window).toBe(0);
+  await page.getByRole('link',{name:'Wallet',exact:true}).click();
+  expect(await page.evaluate(()=>document.querySelector('.desktop-scroll')!.scrollTop)).toBe(0);
+});
+
 test('skip to content preserves the current view',async({page})=>{
   await openDesktop(page);
   await page.getByRole('link',{name:'Wallet',exact:true}).click();

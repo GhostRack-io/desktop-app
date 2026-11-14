@@ -1,4 +1,5 @@
 import './style.css';
+import { startBackdrop } from './backdrop';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -472,9 +473,10 @@ document.addEventListener('keydown',event=>{
 });
 dialog.addEventListener('cancel',event=>{ if(busy) event.preventDefault(); });
 dialog.addEventListener('close',()=>{ if(dialog.open) return; document.querySelector('#dialog-content')!.textContent=''; if(modalReturnFocus?.isConnected) modalReturnFocus.focus({preventScroll:true}); else main.focus({preventScroll:true}); modalReturnFocus=null; });
-window.addEventListener('hashchange',()=>{ const hash=location.hash.slice(1); page=(pages.includes(hash) ? hash : 'home') as Page; render(); window.scrollTo({top:0}); main.focus({preventScroll:true}); });
+window.addEventListener('hashchange',()=>{ const hash=location.hash.slice(1); page=(pages.includes(hash) ? hash : 'home') as Page; render(); main.parentElement!.scrollTop=0; main.focus({preventScroll:true}); });
 document.querySelector('#theme-toggle')!.addEventListener('click',async()=>{ if(!snapshot || busy) return; const current=snapshot.settings.theme === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : snapshot.settings.theme; const theme=current === 'dark' ? 'light' : 'dark'; await operate(async()=>{ await call({action:'save_settings',settings:{...snapshot.settings,theme}}); snapshot.settings.theme=theme; document.documentElement.dataset.theme=theme; },`Theme: ${theme}`); });
 async function receiveApproval(reference:string) { if(busy) { notify('Finish the current action, then paste the approval link on the Account screen.',true); return; } await operate(async()=>{ const op=await call({action:'inspect_restore',reference}); location.hash='account'; await refresh(); await restoreReview(op); }); }
+startBackdrop();
 page=(pages.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home') as Page;
 await refresh(true);
 if(native) {
