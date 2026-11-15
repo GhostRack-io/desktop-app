@@ -724,6 +724,9 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
 .notice__command{display:inline;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .notice-list{display:grid;gap:var(--space-2)}
+.notice-list--rows{gap:0}
+.notice-list--rows>li+li{border-block-start:var(--border) solid var(--color-divider)}
+.notice-list--rows .notice{padding-inline:0;background:none;border-radius:0}
 .status-line{color:var(--t,inherit);font-size:var(--text-sm);font-weight:var(--weight-strong)}
 .status-line:empty{position:absolute}
 .action>.status-line{flex:1 0 100%}
