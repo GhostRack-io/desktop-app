@@ -1634,6 +1634,7 @@ form[data-action="offering.rent"]{display:flex}
 [data-vpn-qr] .qr{inline-size:18rem}
 [data-vpn-config]:not([hidden]){display:grid;gap:var(--space-3)}
 [data-vpn-config] .code-block{align-items:flex-start}
+.vpn-config__text{display:grid;gap:var(--space-3);align-content:start;min-inline-size:0}
 @media not all and (min-width:40em){:is(.flow,.reveal){padding-inline:var(--space-4)}}
 
 
