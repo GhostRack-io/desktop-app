@@ -469,6 +469,8 @@ main:focus{outline:none}
 .panel--danger .panel__title,.section--danger .section__title{color:var(--color-danger-text)}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr));gap:var(--space-5)}
 .cols--fill{grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr))}
+
+@media (min-width:48em){.cols--lead{grid-template-columns:auto minmax(0,1fr);column-gap:var(--space-7)}}
 .lan-meshes>li{display:grid;align-content:start;gap:var(--space-4)}
 .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
 .toolbar>.btn--quiet:first-child{margin-inline-start:calc(var(--pad) * -1)}
@@ -650,8 +652,10 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .vpn-form .field>input{max-inline-size:40rem}
 .vpn-form .offering-costs{max-inline-size:40rem}
 .vpn-form .choices,.vpn-form .choices--solo,.vpn-form .choices--pair{grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))}
-.port-fields{display:flex;flex-wrap:wrap;gap:var(--space-4) var(--space-5)}
+.port-fields{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-4) var(--space-5)}
 .port-fields>.field{flex:0 0 8rem}
+
+.port-fields>.field--invalid{flex-basis:calc(8rem + var(--space-3) + var(--rule-signal))}
 
 
 .port-map{display:grid;gap:var(--space-1);margin:0;padding:0;list-style:none;font-variant-numeric:tabular-nums}
