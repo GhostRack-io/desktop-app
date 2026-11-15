@@ -807,6 +807,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .facts{display:grid}
 .facts>div{display:grid;gap:var(--space-1) var(--space-4);padding-block:.6875rem}
 .facts:not(.facts--inline)>div+div{border-block-start:var(--border) solid var(--color-divider)}
+.change-intro{margin-block-start:var(--space-3);padding-block-start:var(--space-5);border-block-start:var(--border) solid var(--color-border-strong)}
 .facts:not(.facts--inline)>div:first-child{padding-block-start:0}
 .facts:not(.facts--inline)>div:last-child{padding-block-end:0}
 .facts dd{min-inline-size:0;color:var(--color-text);overflow-wrap:anywhere}
