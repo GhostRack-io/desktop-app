@@ -1110,6 +1110,7 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .graph__legend dt{color:var(--color-text-muted);font-size:var(--text-sm)}
 .graph__swatch{display:inline-block;inline-size:.625rem;block-size:.1875rem;margin-inline-end:.3125rem;vertical-align:.1875em;background:var(--line-0);border-radius:var(--radius-sm)}
 .graph__swatch--1{background:var(--line-1)}
+.graph--traffic-out{--line-0:var(--color-graph-2)}
 .graph__refresh{position:absolute;inset-block-start:.625rem;inset-inline-end:.625rem;display:grid;place-items:center;inline-size:1.75rem;block-size:1.75rem;color:var(--color-text-muted);border-radius:var(--radius)}
 .graph__refresh:hover{background:var(--color-surface-sunken);color:var(--color-text)}
 .graph__refresh[aria-busy=true] .icon{animation:turn 1s linear infinite}
@@ -1643,6 +1644,7 @@ form[data-action="offering.rent"]{display:flex}
 .messages>li{white-space:pre-wrap;overflow-wrap:anywhere}
 .settings-form,.job-head{display:grid;gap:var(--space-4)}
 .settings-form{justify-items:start}
+.vpn-settings select{min-inline-size:18rem;max-inline-size:100%}
 .ruled{padding-block-start:var(--space-4);border-block-start:var(--border) solid var(--color-divider)}
 .settings-form .action{flex-direction:column;align-items:flex-start;gap:var(--space-3)}
 
