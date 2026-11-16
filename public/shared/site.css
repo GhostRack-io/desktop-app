@@ -1734,9 +1734,10 @@ form[data-action="offering.rent"]{display:flex}
 .billing-tabs{margin-block-start:calc(var(--space-4) * -1)}
 @media not all and (min-width:40em){#charges td:first-of-type{flex-basis:100%}}
 
-.notices{gap:var(--space-5)}
-.notices__item{display:grid;gap:var(--space-2)}
-.notices__bar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);padding-inline-start:var(--space-4);font-size:var(--text-sm)}
+.notices{gap:var(--space-3)}
+.notices__item{position:relative;display:grid;gap:var(--space-1)}
+.notices__bar{display:flex;align-items:center;justify-content:flex-end;gap:var(--space-2);font-size:var(--text-sm)}
+@media (min-width:40em){.notices__item>.notice{padding-inline-end:12rem}.notices__bar{position:absolute;inset-block-start:.5rem;inset-inline-end:.625rem}}
 .notices__item[data-tone=read]>.notice{background:none;outline:var(--border) solid var(--color-border);outline-offset:calc(var(--border) * -1)}
 
 .ticket,.ticket>[data-live]{display:contents}
