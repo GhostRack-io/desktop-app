@@ -1196,7 +1196,7 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 :is(.site-header,.site-footer)::before{content:"";position:absolute;inset-block:0;inset-inline:var(--bar-side);z-index:-1}
 :is(.site-header,.site-footer)::after{content:"";position:absolute;inset-inline:var(--bar-side);z-index:-1;block-size:var(--border-thick);background:var(--glass-chrome-line)}
 
-.site-header::before{border-block-end:var(--border) solid var(--color-glass-bar-edge);background:var(--glass-bar);box-shadow:0 .375rem 1rem -.625rem var(--color-glass-lift),inset 0 var(--border) 0 var(--color-glass-rim)}
+.site-header::before{border-block-end:var(--border) solid var(--color-glass-bar-edge);background:var(--glass-bar);box-shadow:0 .375rem 1rem -.625rem var(--color-glass-lift)}
 .site-header::after{inset-block-end:0}
 .site-footer::before{border-block-start:var(--border) solid var(--color-glass-bar-edge);background:var(--color-surface)}
 .site-footer::after{inset-block-start:0}
