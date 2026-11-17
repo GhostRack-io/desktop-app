@@ -1488,6 +1488,8 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 .offer-list--table #offerings td.entry{inline-size:1%;text-align:end}
 .offer-list--table #offerings .price .money{font-size:var(--text-lg)}
 .offer-list--table #offerings .cell-note{margin-inline-start:0}
+
+.offer-list--table #offerings :is(.rating-count,.price-unit){display:none}
 .offer-list--table #offerings tbody tr:not(:is(:hover,:focus-within)) .rent{border-color:var(--color-glass-chrome-mid);background:var(--glass-card);box-shadow:var(--glass-control-lift);color:var(--color-text)}
 .offer-list--table #offerings tbody tr:not(:is(:hover,:focus-within)) .rent::after{content:none}
 }
