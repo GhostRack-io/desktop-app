@@ -57,6 +57,10 @@ test('app bar and page headings stay fixed when views change or scroll',async({p
   await page.getByRole('button',{name:'Save settings'}).scrollIntoViewIfNeeded();
   expect((await page.locator('.desktop-bar').boundingBox())!.y).toBe(0);
   await expect(page.getByRole('link',{name:'Overview'})).toBeInViewport();
+  // Fixed, not sticky (WebKitGTK scrolls by copying past fixed boxes), the rail still spans the window.
+  expect(await page.evaluate(()=>[getComputedStyle(document.querySelector('.desktop-bar')!).position,getComputedStyle(document.querySelector('.desktop-sidebar')!).position])).toEqual(['fixed','fixed']);
+  const rail=(await page.locator('.desktop-sidebar').boundingBox())!;
+  expect(rail.y+rail.height).toBe(1000);
 });
 
 test('the app bar wears the website theme: its opaque bar, an edge, the lockup at 32 px and the website fonts',async({page})=>{
@@ -78,19 +82,18 @@ test('the app bar wears the website theme: its opaque bar, an edge, the lockup a
   expect([...new Set(fonts)].sort()).toEqual(['geist-mono.woff2 200','instrument-sans.woff2 200']);
 });
 
-test('only the content pane scrolls, over the backdrop drawn once as a bitmap',async({page})=>{
+test('the backdrop is drawn once as a bitmap that scrolls with the page',async({page})=>{
   await page.setViewportSize({width:1180,height:600});
   await openDesktop(page);
   await page.getByRole('link',{name:'Settings'}).click();
   await expect(page.locator('html')).toHaveAttribute('data-backdrop','');
-  const backdrop=await page.evaluate(()=>({image:getComputedStyle(document.body).backgroundImage,glows:getComputedStyle(document.body,'::before').display,art:getComputedStyle(document.body,'::after').display}));
-  expect(backdrop).toEqual({image:expect.stringContaining('blob:'),glows:'none',art:'none'});
-  await page.getByRole('button',{name:'Save settings'}).scrollIntoViewIfNeeded();
-  const scrolled=await page.evaluate(()=>({pane:document.querySelector('.desktop-scroll')!.scrollTop,window:scrollY}));
-  expect(scrolled.pane).toBeGreaterThan(0);
-  expect(scrolled.window).toBe(0);
-  await page.getByRole('link',{name:'Wallet',exact:true}).click();
-  expect(await page.evaluate(()=>document.querySelector('.desktop-scroll')!.scrollTop)).toBe(0);
+  const backdrop=()=>page.evaluate(()=>({image:getComputedStyle(document.body).backgroundImage,attachment:getComputedStyle(document.body).backgroundAttachment,glows:getComputedStyle(document.body,'::before').display,art:getComputedStyle(document.body,'::after').display}));
+  const first=await backdrop();
+  expect(first).toEqual({image:expect.stringContaining('blob:'),attachment:'scroll',glows:'none',art:'none'});
+  // A snapshot writes the same theme again; that alone draws nothing new.
+  await page.evaluate(()=>{ document.documentElement.dataset.theme=document.documentElement.dataset.theme ?? ''; });
+  await page.waitForTimeout(400);
+  expect((await backdrop()).image).toBe(first.image);
 });
 
 test('skip to content preserves the current view',async({page})=>{

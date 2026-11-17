@@ -2,18 +2,26 @@
 /* The desktop shell keeps its navigation; its shapes and spacing follow the website.
    The page shows site.css's glows, and panels are glass over them. Whatever stays in
    place while content scrolls is opaque: the bar and the rail so that text stays
-   LCD-rendered on them, anything floating so that it reads.
-   WebKitGTK without GPU compositing (NVIDIA on X11) repaints what is visible in every
-   scrolled frame. So only .desktop-scroll, around #main, scrolls in a window-high body,
-   and backdrop.ts paints body::before and body::after into one bitmap, drawn once:
-   26 frames a second on Wallet before, 60 after. */
-html { overflow:hidden; }
-:root { --desktop-backdrop:none; }
-html[data-backdrop] body { background:var(--desktop-backdrop) 0 0 / 100% 100% no-repeat; }
+   LCD-rendered on their sticky layers, anything floating so that it reads.
+   backdrop.ts paints body::before and body::after into one bitmap, drawn once: WebKitGTK
+   without GPU compositing (NVIDIA on X11) otherwise repaints them in every scrolled frame. */
+:root { --desktop-backdrop:none; --desktop-backdrop-height:100%; }
+/* Lighter glass on desktop: the website's blurred lifts and inner bands become crisp edges.
+   WebKitGTK without GPU compositing blurs every shadow again in every repainted frame,
+   half of a full-window frame on a large window. */
+:root {
+  --glass-lift:0 var(--border) 0 var(--color-glass-lift),var(--glass-hi);
+  --glass-card-lift:0 var(--border) 0 var(--color-glass-lift),var(--glass-hi);
+  --glass-control-lift:0 var(--border) 0 var(--color-glass-lift-soft),var(--glass-hi);
+  --glass-inner-band:0 0 #0000;
+  --glass-inset:inset 0 var(--border) 0 var(--color-glass-field-shade),0 var(--border) 0 var(--color-glass-rim-faint);
+}
+html[data-backdrop] body { background:var(--desktop-backdrop) 0 0 / 100% var(--desktop-backdrop-height) no-repeat; }
 html[data-backdrop] body::before,html[data-backdrop] body::after { display:none; }
-body { min-width:360px; overflow-wrap:anywhere; block-size:100vh; block-size:100dvh; min-block-size:0; overflow:hidden; }
+html { scroll-padding-top:calc(var(--bar-height) + var(--space-4)); }
+body { min-width:360px; overflow-wrap:anywhere; }
 .desktop-bar {
-  position:relative; z-index:var(--z-header); flex-shrink:0;
+  position:sticky; top:0; z-index:var(--z-header); flex-shrink:0;
   height:var(--bar-height); display:flex; align-items:center; justify-content:space-between;
   padding:0 var(--space-6); background:var(--glass-bar); color:var(--color-text);
   border-bottom:var(--border) solid var(--color-glass-bar-edge); box-shadow:var(--glass-card-lift);
@@ -30,11 +38,19 @@ body { min-width:360px; overflow-wrap:anywhere; block-size:100vh; block-size:100
   border-radius:var(--radius); box-shadow:var(--glass-control-lift); cursor:pointer;
 }
 .bar-button:hover { border-color:var(--color-text); }
-.desktop-frame { display:grid; grid-template-columns:220px minmax(0,1fr); flex:1; min-height:0; }
-.desktop-scroll { min-width:0; min-height:0; overflow-y:auto; scroll-padding-top:var(--space-4); }
+.desktop-frame { display:grid; grid-template-columns:220px minmax(0,1fr); flex:1; min-height:calc(100vh - var(--bar-height)); }
 .desktop-sidebar {
-  min-height:0; overflow-y:auto; z-index:5; background:var(--color-glass-bar-end); display:flex; flex-direction:column;
+  position:sticky; top:var(--bar-height); height:calc(100dvh - var(--bar-height)); align-self:start;
+  overflow-y:auto; z-index:5; background:var(--color-glass-bar-end); display:flex; flex-direction:column;
   justify-content:space-between; border-right:var(--border) solid var(--color-glass-bar-edge); padding:var(--space-5) var(--space-4);
+}
+/* Fixed, not sticky: WebKitGTK without GPU compositing copies the scrolled page past fixed
+   boxes, but repaints all of it under sticky ones. */
+@media(min-width:761px) {
+  body { padding-top:var(--bar-height); }
+  .desktop-bar { position:fixed; inset:0 0 auto; }
+  .desktop-sidebar { position:fixed; top:var(--bar-height); bottom:0; left:0; width:220px; height:auto; align-self:stretch; }
+  #main { grid-column:2; }
 }
 .desktop-sidebar nav { display:grid; gap:var(--space-1); }
 .desktop-sidebar nav a {
@@ -51,7 +67,7 @@ body { min-width:360px; overflow-wrap:anywhere; block-size:100vh; block-size:100
 #main {
   padding:var(--space-6) var(--space-6) var(--space-7); max-width:1440px; min-width:0;
   display:grid; align-content:start; gap:var(--space-6); width:100%; margin:0 auto;
-  scroll-margin-top:var(--space-4);
+  align-self:start; scroll-margin-top:calc(var(--bar-height) + var(--space-4));
 }
 #main .badge,#dialog .badge { width:max-content; max-width:100%; justify-self:start; }
 .page-top { display:flex; align-items:flex-end; justify-content:space-between; gap:var(--space-5); }
@@ -175,6 +191,7 @@ dialog[data-layout=payment] .payment-address .code { white-space:nowrap; word-br
 }
 @media(max-width:1000px) {
   .desktop-frame { grid-template-columns:185px minmax(0,1fr); }
+  .desktop-sidebar { width:185px; }
   #main { padding:var(--space-5); }
   .split,.setup-grid { grid-template-columns:minmax(0,1fr); }
   .operation { flex-wrap:wrap; }
@@ -182,8 +199,8 @@ dialog[data-layout=payment] .payment-address .code { white-space:nowrap; word-br
   .payout-balances { grid-template-columns:minmax(0,1fr); }
 }
 @media(max-width:760px) {
-  .desktop-frame { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); }
-  .desktop-sidebar { overflow:visible; padding:0; border-right:0; border-bottom:var(--border) solid var(--color-glass-bar-edge); }
+  .desktop-frame { display:block; }
+  .desktop-sidebar { height:auto; overflow:visible; padding:0; border-right:0; border-bottom:var(--border) solid var(--color-glass-bar-edge); }
   .desktop-sidebar nav { display:flex; overflow-x:auto; gap:0; }
   .desktop-sidebar nav a { border-left:0; border-bottom:var(--rule-signal) solid transparent; border-radius:0; white-space:nowrap; gap:var(--space-2); padding:var(--space-3); }
   .desktop-sidebar nav a[aria-current=page] { border-bottom-color:var(--color-accent); }

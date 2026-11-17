@@ -1,13 +1,18 @@
 // The website's backdrop (site.css's body::before glows and body::after hero art) drawn once
-// into a bitmap. WebKitGTK without GPU compositing (NVIDIA on X11) otherwise repaints it in
-// every scrolled frame: six large gradients and a blurred SVG cost about half of each frame.
-// The pseudo-elements stay the source: their computed style is read and painted the same
-// way, and anything that cannot be read or drawn leaves them as they are.
+// into a bitmap that scrolls with the page. WebKitGTK without GPU compositing (NVIDIA on X11)
+// otherwise repaints them in every scrolled frame: six large gradients and a blurred SVG,
+// about half of each frame. The pseudo-elements stay the source: their computed style is
+// read and painted the same way, and anything that cannot be read or drawn leaves them be.
+// Everything in it is soft, so a quarter of the resolution looks the same and stays small.
 
 type Glow = { rx:number; ry:number; x:number; y:number; color:string; stop:number };
 
 const root = document.documentElement;
+const SCALE = 0.25;
+// Drawn this far below the page, so that a longer view seldom needs a new bitmap.
+const HEADROOM = 1600;
 let current = '';
+let drawn = { key:'', height:0 };
 let pending = 0;
 let generation = 0;
 
@@ -45,7 +50,8 @@ function pass(from:Float32Array, to:Float32Array, w:number, h:number, r:number, 
     }
   }
 }
-// CSS blur() then saturate(), as the element's filter applies them.
+// CSS blur() then saturate(), as the element's filter applies them; canvas filters are
+// missing in WebKitGTK.
 function soften(data:ImageData, sigma:number, saturation:number) {
   const { width:w, height:h, data:px } = data;
   const a = new Float32Array(px.length), b = new Float32Array(px.length);
@@ -60,26 +66,39 @@ function soften(data:ImageData, sigma:number, saturation:number) {
   return data;
 }
 
+// The pseudo-elements' computed style, read with them shown for that moment only: style
+// and layout run for the read, nothing is painted in between.
+function read() {
+  const shown = root.hasAttribute('data-backdrop');
+  if (shown) root.removeAttribute('data-backdrop');
+  const before = getComputedStyle(document.body, '::before'), after = getComputedStyle(document.body, '::after');
+  const style = {
+    width:parseFloat(before.width), height:parseFloat(before.height), glows:before.backgroundImage, tile:parseFloat(before.backgroundSize.split(' ')[1] ?? ''),
+    glowAlpha:+before.opacity, art:after.display === 'none' ? '' : after.backgroundImage, left:parseFloat(after.left), top:parseFloat(after.top),
+    artWidth:parseFloat(after.width), artAlpha:+after.opacity, filter:after.filter,
+  };
+  if (shown) root.setAttribute('data-backdrop', '');
+  return style;
+}
+
 async function draw() {
+  const style = read();
+  const key = [style.width, style.glows, style.tile, style.glowAlpha, style.art, style.left, style.top, style.artWidth, style.artAlpha, style.filter].join('|');
+  if (key === drawn.key && style.height <= drawn.height) return;
   const mine = ++generation;
-  delete root.dataset.backdrop;
-  const body = document.body, width = body.clientWidth, height = innerHeight, scale = devicePixelRatio || 1;
-  const before = getComputedStyle(body, '::before'), after = getComputedStyle(body, '::after');
-  const tile = parseFloat(before.backgroundSize.split(' ')[1] ?? '');
-  const list = glows(before.backgroundImage, width);
-  const art = after.display === 'none' ? null : after.backgroundImage.match(/^url\("?(.*?)"?\)$/)?.[1];
-  if (!list || !(tile > 0) || (after.display !== 'none' && !art)) return;
-  const left = parseFloat(after.left), top = parseFloat(after.top), boxWidth = parseFloat(after.width);
-  const opacity = +after.opacity, glowAlpha = +before.opacity;
-  const filter = after.filter.match(/^blur\(([\d.]+)px\)(?: saturate\(([\d.]+)\))?$/);
-  if (after.filter !== 'none' && !filter) return;
+  const fail = () => { if (mine === generation) { root.removeAttribute('data-backdrop'); drawn = { key:'', height:0 }; } };
+  const width = style.width, height = Math.ceil((style.height + HEADROOM) / 400) * 400;
+  const list = glows(style.glows, width);
+  const art = style.art ? style.art.match(/^url\("?(.*?)"?\)$/)?.[1] : null;
+  const filter = style.filter.match(/^blur\(([\d.]+)px\)(?: saturate\(([\d.]+)\))?$/);
+  if (!list || !(style.tile > 0) || !(width > 0) || (style.art && !art) || (style.filter !== 'none' && !filter)) return fail();
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale);
-  const context = canvas.getContext('2d');
-  if (!context) return;
-  context.scale(scale, scale);
-  context.globalAlpha = glowAlpha;
-  for (let y = 0; y < height; y += tile) for (const glow of list) {
+  canvas.width = Math.ceil(width * SCALE); canvas.height = Math.ceil(height * SCALE);
+  const context = canvas.getContext('2d', { willReadFrequently:true });
+  if (!context) return fail();
+  context.scale(SCALE, SCALE);
+  context.globalAlpha = style.glowAlpha;
+  for (let y = 0; y < height; y += style.tile) for (const glow of list) {
     context.save();
     context.translate(glow.x, y + glow.y);
     context.scale(1, glow.ry / glow.rx);
@@ -91,42 +110,44 @@ async function draw() {
   }
   if (art) {
     const image = new Image(); image.src = art;
-    try { await image.decode(); } catch { return; }
+    try { await image.decode(); } catch { return fail(); }
     if (mine !== generation) return;
-    const step = boxWidth * image.naturalHeight / image.naturalWidth;
-    if (!(boxWidth > 0 && step > 0) || Number.isNaN(left + top)) return;
+    const step = style.artWidth * image.naturalHeight / image.naturalWidth;
+    if (!(style.artWidth > 0 && step > 0) || Number.isNaN(style.left + style.top)) return fail();
     // The box clips the tiles and the blur then reaches past it, as the element's filter does.
-    // A quarter of the size is enough for a blur this wide, and quick to blur by hand: canvas
-    // filters are missing in WebKitGTK.
-    const sigma = filter ? +filter[1] : 0, saturation = filter?.[2] ? +filter[2] : 1, small = sigma >= 8 ? 0.25 : 1;
     const layer = document.createElement('canvas');
-    layer.width = Math.ceil(width * small); layer.height = Math.ceil(height * small);
+    layer.width = canvas.width; layer.height = canvas.height;
     const tiles = layer.getContext('2d', { willReadFrequently:true })!;
-    tiles.scale(small, small);
-    tiles.beginPath(); tiles.rect(left, top, boxWidth, height - top); tiles.clip();
-    for (let y = top; y < height; y += step) tiles.drawImage(image, left, y, boxWidth, step);
-    if (sigma > 0 || saturation !== 1) {
-      tiles.setTransform(1, 0, 0, 1, 0, 0);
-      tiles.putImageData(soften(tiles.getImageData(0, 0, layer.width, layer.height), sigma * small, saturation), 0, 0);
-    }
-    context.globalAlpha = opacity;
-    context.imageSmoothingQuality = 'high';
-    context.drawImage(layer, 0, 0, layer.width / small, layer.height / small);
+    tiles.scale(SCALE, SCALE);
+    tiles.beginPath(); tiles.rect(style.left, style.top, style.artWidth, height - style.top); tiles.clip();
+    for (let y = style.top; y < height; y += step) tiles.drawImage(image, style.left, y, style.artWidth, step);
+    const sigma = filter ? +filter[1] * SCALE : 0, saturation = filter?.[2] ? +filter[2] : 1;
+    if (sigma > 0 || saturation !== 1) tiles.putImageData(soften(tiles.getImageData(0, 0, layer.width, layer.height), sigma, saturation), 0, 0);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.globalAlpha = style.artAlpha;
+    context.drawImage(layer, 0, 0);
   }
   const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve));
-  if (!blob || mine !== generation) return;
+  if (mine !== generation) return;
+  if (!blob) return fail();
   const previous = current;
   current = URL.createObjectURL(blob);
   root.style.setProperty('--desktop-backdrop', `url("${current}")`);
-  root.dataset.backdrop = '';
+  root.style.setProperty('--desktop-backdrop-height', `${height}px`);
+  root.setAttribute('data-backdrop', '');
+  drawn = { key, height };
   if (previous) URL.revokeObjectURL(previous);
 }
 
-function schedule() { clearTimeout(pending); pending = window.setTimeout(() => { void draw(); }, 120); }
+function schedule() { clearTimeout(pending); pending = window.setTimeout(() => { void draw(); }, 150); }
 
 export function startBackdrop() {
   void draw();
   addEventListener('resize', schedule);
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', schedule);
-  new MutationObserver(schedule).observe(root, { attributes:true, attributeFilter:['data-theme'] });
+  // refresh() writes the theme on every snapshot: only a different one is drawn again.
+  new MutationObserver(records => { if (records.some(r => r.oldValue !== root.getAttribute('data-theme'))) schedule(); })
+    .observe(root, { attributes:true, attributeFilter:['data-theme'], attributeOldValue:true });
+  // A longer view needs more of the bitmap; a shorter one is clipped by the body.
+  new ResizeObserver(() => { if (document.body.offsetHeight > drawn.height) schedule(); }).observe(document.body);
 }

@@ -167,6 +167,19 @@ fn main() {
                     "Desktop approval-link registration unavailable; paste links in Account."
                 );
             }
+            #[cfg(target_os = "linux")]
+            if let Some(window) = app.get_webview_window("main") {
+                // WebKitGTK animates each wheel step on the page's thread; without GPU
+                // compositing (NVIDIA on X11) a frame there takes long enough that the
+                // animation lags behind the wheel, then jumps. Touchpads keep their
+                // precise deltas, so they still scroll smoothly.
+                let _ = window.with_webview(|webview| {
+                    use webkit2gtk::{SettingsExt, WebViewExt};
+                    if let Some(settings) = webview.inner().settings() {
+                        settings.set_enable_smooth_scrolling(false);
+                    }
+                });
+            }
             let handle = app.handle().clone();
             app.deep_link().on_open_url(move |event| {
                 for url in event.urls() {
