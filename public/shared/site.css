@@ -1852,7 +1852,10 @@ form[data-action="offering.rent"]{display:flex}
 .host-offer>.tiles{grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))}
 .host-more>summary{inline-size:max-content;max-inline-size:100%;cursor:pointer;font-weight:var(--weight-strong)}
 .host-more[open]>summary{margin-block-end:var(--space-2)}
-.pricing-form{max-inline-size:36rem}
+.pricing-form{inline-size:100%;max-inline-size:52rem}
+.pricing-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));align-items:start;gap:var(--space-4) var(--space-5)}
+.pricing-form .unit-box{max-inline-size:13rem}
+.pricing-sla .field select{inline-size:auto;min-inline-size:14rem;max-inline-size:100%;justify-self:start}
 .size-preview .is-empty{color:var(--color-text)}
 .provider-tabs{margin-block-start:calc(var(--space-4) * -1)}
 
