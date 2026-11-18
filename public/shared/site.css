@@ -692,7 +692,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .choice__input:disabled+.choice__label{border-color:var(--color-border);border-style:dashed;background:var(--color-transparent);box-shadow:none;color:var(--color-text-muted);cursor:not-allowed}
 .choice__title{font-weight:var(--weight-bold)}
 
-.field .choice__version{inline-size:auto;min-inline-size:8rem;max-inline-size:100%;justify-self:start}
+.field .choice__version{inline-size:auto;min-inline-size:14rem;max-inline-size:100%;justify-self:start}
 
 .os-icon{vertical-align:-.15em}
 
