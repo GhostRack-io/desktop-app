@@ -731,6 +731,9 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .notice__body{display:grid;gap:var(--space-1);min-inline-size:0}
 .notice__title{font-weight:var(--weight-bold)}
 
+.notice__body>ul{display:grid;gap:var(--space-1);margin:0;padding-inline-start:1.25em}
+.notice__body>ul strong{white-space:nowrap}
+
 .notice__command{display:inline;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .notice-list{display:grid;gap:var(--space-2)}
 .notice-list--rows{gap:0}
@@ -1657,20 +1660,28 @@ form[data-action="offering.rent"]{display:flex}
 .login-card__ask{color:var(--color-text-muted);font-size:var(--text-sm);text-align:center}
 .login-card .login__form{max-inline-size:none}
 .login-card .flow__submit>.login__status{flex-basis:100%}
-}
+
+.page--card-wide{--card-width:30rem}
+.login-card__trial{display:flex;justify-content:center}
+.trial-line{display:flex;align-items:center;gap:var(--space-2);inline-size:fit-content;max-inline-size:100%;padding:var(--space-2) var(--space-3);background:var(--color-accent-surface);border-radius:var(--radius);font-size:var(--text-sm)}
+.trial-line>.icon{flex:none}
+.trial-line strong{color:var(--color-accent-strong)}
+.signup-ways{display:grid;gap:var(--space-3)}
+.signup-ways>.flow{max-inline-size:none}
+.signup-ways__or{display:flex;align-items:center;gap:var(--space-3);color:var(--color-text-muted);font-size:var(--text-sm)}
+.signup-ways__or::before,.signup-ways__or::after{content:"";flex:1;border-block-start:var(--border) solid var(--color-divider)}
+.login-card .signup-agreement{text-align:center}
+.login-card.login-card--signup>.section{padding-block-start:0;border-block-start:0}
 
 .login-card>.section{--inset:0rem;padding:var(--space-4) 0 0;border:0;border-block-start:var(--border) solid var(--color-divider);border-radius:0;background:none;box-shadow:none}
 .login-card>.section::before,.login-card>.section::after{content:none}
-.login-card .section>.section__title:first-child{margin:0;padding:0;border:0;background:none}
+.login-card .section>:first-child{margin:0;padding:0;border:0;background:none}
 .login__status:empty{position:absolute}
 .login__form:not(.flow){max-inline-size:28rem}
 
 .flow,.reveal{display:grid;gap:var(--space-4);max-inline-size:36rem;padding:var(--space-4) var(--space-5);border:var(--border) solid var(--color-divider);background:var(--color-glass-well);box-shadow:var(--glass-inset);border-radius:var(--radius)}
 
-.signup-options{align-items:start}
-.signup-options>.flow{max-inline-size:none}
-
-.flow--wide,.reveal--wide{max-inline-size:var(--measure)}
+.flow--wide{max-inline-size:var(--measure)}
 .flow--wide .flow__submit>.login__status{flex-basis:100%}
 .flow__fields{display:grid;gap:var(--space-4);min-inline-size:0}
 .flow__submit{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4)}
