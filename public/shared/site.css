@@ -1644,6 +1644,7 @@ form[data-action="offering.rent"]{display:flex}
 .login-part+.login-part{padding-block-start:var(--space-4);border-block-start:var(--border) solid var(--color-divider)}
 .login-part>h3{margin:0}
 .login__status:empty{position:absolute}
+.login__form:not(.flow){max-inline-size:28rem}
 
 .flow,.reveal{display:grid;gap:var(--space-4);max-inline-size:36rem;padding:var(--space-4) var(--space-5);border:var(--border) solid var(--color-divider);background:var(--color-glass-well);box-shadow:var(--glass-inset);border-radius:var(--radius)}
 
