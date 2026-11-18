@@ -1661,7 +1661,7 @@ form[data-action="offering.rent"]{display:flex}
 .login-card .login__form{max-inline-size:none}
 .login-card .flow__submit>.login__status{flex-basis:100%}
 
-.page--card-wide{--card-width:30rem}
+.page--card-wide{--card-width:44rem}
 .login-card__trial{display:flex;justify-content:center}
 .trial-line{display:flex;align-items:center;gap:var(--space-2);inline-size:fit-content;max-inline-size:100%;padding:var(--space-2) var(--space-3);background:var(--color-accent-surface);border-radius:var(--radius);font-size:var(--text-sm)}
 .trial-line>.icon{flex:none}
