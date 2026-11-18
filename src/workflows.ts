@@ -8,7 +8,7 @@ export function payoutLabel(state: string): string {
 }
 export function payoutNote(payout: {state: string; waiting_reason?: string | null}): string {
   if (payout.state === 'cancelled') return 'The amount is back in your earnings.';
-  return ({exchange_rate:'Waiting for the MMX exchange rate.',wallet_liquidity:'Waiting to be sent. No action is needed.',possibly_sent:'Being checked on chain.'} as Record<string,string>)[payout.waiting_reason || ''] || '';
+  return ({exchange_rate:'Waiting for the MMX exchange rate.',wallet_liquidity:'Waiting to be sent. No action is needed.',payout_signer:'Waits to be sent; nothing to do.',possibly_sent:'Being checked on chain.'} as Record<string,string>)[payout.waiting_reason || ''] || '';
 }
 
 export function paymentNeedsUpdate(op: { transaction_id?: string | null; state: string; confirmations?: number | null }): boolean {

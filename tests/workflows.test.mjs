@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import ts from 'typescript';
 const source = await fs.readFile(new URL('../src/workflows.ts', import.meta.url), 'utf8');
 const js = ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
-const { accountState, historyLabel, paymentNeedsUpdate, websitePasswordState, passwordExpiryDays, githubLabel, githubStep, githubWaitLimit, SIGNUP_AGREEMENT, TRIAL_LIMITS } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+const { accountState, historyLabel, paymentNeedsUpdate, payoutNote, websitePasswordState, passwordExpiryDays, githubLabel, githubStep, githubWaitLimit, SIGNUP_AGREEMENT, TRIAL_LIMITS } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 test('automatic payment checks stop at ten confirmations and exclude drafts and terminal failures', () => {
   const payment = {transaction_id:'transaction',state:'included'};
   for (const confirmations of [undefined,null,0,1,9]) assert.equal(paymentNeedsUpdate({...payment,confirmations}),true);
@@ -83,4 +83,8 @@ test('activating names the Terms and asks that the service starts at once, as th
   assert.match(SIGNUP_AGREEMENT, /^By activating the account, with GitHub or with a deposit, you agree to the Terms of Service and the Acceptable Use Policy/);
   assert.match(SIGNUP_AGREEMENT, /ghostrack\.io\/terms/);
   assert.match(SIGNUP_AGREEMENT, /ask that the service starts at once\.$/);
+});
+test('a payout waiting for the payout wallet to sign says so, as the website does', () => {
+  assert.equal(payoutNote({state:'queued',waiting_reason:'payout_signer'}),'Waits to be sent; nothing to do.');
+  assert.equal(payoutNote({state:'queued',waiting_reason:null}),'');
 });
