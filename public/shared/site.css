@@ -614,9 +614,9 @@ main:focus{outline:none}
 
 :root{--field-pad:.75rem;--label-pad:var(--field-pad)}
 .field{display:grid;gap:var(--space-2);min-inline-size:0}
-.field>label,.field>legend,.choices>legend,.env-row__part>span{color:var(--color-text-secondary);font-size:var(--text-label);font-weight:var(--weight-medium)}
+.field>:is(label,.field__label),.field>legend,.choices>legend,.env-row__part>span{color:var(--color-text-secondary);font-size:var(--text-label);font-weight:var(--weight-medium)}
 
-.field>label,.env-row__part>span{padding-inline-start:var(--label-pad)}
+.field>:is(label,.field__label),.env-row__part>span{padding-inline-start:var(--label-pad)}
 .field :is(input,select,textarea){inline-size:100%;min-block-size:var(--control-height);padding:.375rem var(--field-pad);border:var(--border) solid var(--color-border-strong);border-radius:var(--radius);background:var(--color-glass-field)}
 .field :is(input:not([type=checkbox],[type=radio]),select,textarea){box-shadow:var(--glass-inset)}
 .field select option{background:var(--color-solid);color:var(--color-text)}
@@ -1707,8 +1707,13 @@ form[data-action="offering.rent"]{display:flex}
 @media (min-width:40em){.reveal__secret{grid-template-columns:minmax(0,1fr) auto;align-items:center}}
 .flow-footnote{padding-block-start:var(--space-4);border-block-start:var(--border) solid var(--color-divider)}
 
-.totp-enroll{display:grid;gap:var(--space-4);align-items:center;min-inline-size:0}
+.totp-enroll{display:grid;gap:var(--space-4) var(--space-5);align-items:start;min-inline-size:0}
 @media (min-width:40em){.totp-enroll{grid-template-columns:auto minmax(0,1fr)}}
+.totp-enroll__fields{display:grid;gap:var(--space-4);min-inline-size:0}
+.totp-enroll__fields .code-block{flex-wrap:nowrap;inline-size:fit-content;max-inline-size:100%}
+.totp-enroll__fields input.code{max-inline-size:10rem}
+
+@media not all and (min-width:40em){.totp-enroll__fields .code-block pre{max-inline-size:16.5ch}}
 .banner-code{display:grid;gap:var(--space-3);max-inline-size:24rem}
 .qr{display:block;inline-size:11rem;max-inline-size:100%;block-size:auto;color:var(--color-term);background:var(--color-term-text);border-radius:var(--radius)}
 [data-vpn-qr] .qr{inline-size:18rem}
