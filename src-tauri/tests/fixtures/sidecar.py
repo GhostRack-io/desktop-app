@@ -75,10 +75,12 @@ if 'approve' in args:
     # A request carried out already: Ghost answers with the request alone.
     if '--yes' not in args and scenario.get('completed_job_id'): reply({'operation':scenario['operation'],'completed_job_id':scenario['completed_job_id']})
     # An instance action's screen ('shown': review, review_effects,
-    # instance_name, notice) beside the request.
-    if '--yes' not in args: reply({'request':{'operation':scenario['operation'],'started_job_id':scenario.get('started_job_id'),**({'expires_at':'2026-11-20T12:15:00Z'} if 'shown' in scenario else {})},**scenario.get('shown',{})})
+    # instance_name, review_notice, notice) beside the request.
+    if '--yes' not in args: reply({'request':{'operation':scenario['operation'],'started_job_id':scenario.get('started_job_id'),**({'expires_at':scenario.get('expires_at','2099-01-01T00:00:00Z')} if 'shown' in scenario else {})},**scenario.get('shown',{})})
     if scenario['operation']['kind'] in ('reinstall_instance','reset_instance_access','rescue_instance'):
         Path(__file__).with_name('ghost-args.json').write_text(json.dumps(args))
+        # An approval whose answer was lost.
+        if scenario.get('fail_approval'): fail('connection_lost')
         reply({'job_id':'job-two'})
     if not option('--recovery-seed-file'): fail('recovery_key_missing')
     if scenario.get('fail_authorization'): fail('destination_unavailable')

@@ -534,6 +534,94 @@ fn review_rows(shown: &Value) -> bool {
         .as_array()
         .is_some_and(|sentences| sentences.iter().all(Value::is_string))
 }
+/// The SHA-256 of an instance action's operation as JSON, its keys in
+/// order (serde_json's map sorts them). Its review keeps this instead of
+/// the operation, whose cloud-init can be about a megabyte, and approving
+/// compares it.
+fn operation_digest(operation: &Value) -> String {
+    hex::encode(Sha256::digest(
+        serde_json::to_vec(operation).unwrap_or_default(),
+    ))
+}
+/// The UNIX time of `text`, a UTC time as Ghost prints one
+/// (`2026-11-20T12:15:00Z`, a fraction of a second ignored); None for any
+/// other text.
+fn utc_seconds(text: &str) -> Option<u64> {
+    let (date, time) = text.strip_suffix('Z')?.split_once('T')?;
+    let mut date = date.splitn(3, '-').map(|part| part.parse::<i64>().ok());
+    let (year, month, day) = (date.next()??, date.next()??, date.next()??);
+    let time = time.split_once('.').map_or(time, |(whole, _)| whole);
+    let mut time = time.splitn(3, ':').map(|part| part.parse::<u64>().ok());
+    let (hour, minute, second) = (time.next()??, time.next()??, time.next()??);
+    if !(1..=12).contains(&month)
+        || !(1..=31).contains(&day)
+        || hour > 23
+        || minute > 59
+        || second > 60
+    {
+        return None;
+    }
+    // The days since 1970-01-01 of a proleptic Gregorian date, counted in
+    // 400-year eras of years that start in March.
+    let year = if month <= 2 { year - 1 } else { year };
+    let era = year.div_euclid(400);
+    let of_era = year - era * 400;
+    let of_year = (153 * ((month + 9) % 12) + 2) / 5 + day - 1;
+    let days = era * 146_097 + of_era * 365 + of_era / 4 - of_era / 100 + of_year - 719_468;
+    Some(u64::try_from(days).ok()? * 86_400 + hour * 3_600 + minute * 60 + second)
+}
+/// Whether the request instance action review `op` shows has expired:
+/// Ghost refuses to approve one that started no job.
+fn review_expired(op: &Operation) -> bool {
+    op.review["expires_at"]
+        .as_str()
+        .and_then(utc_seconds)
+        .is_some_and(|expires| expires <= now())
+}
+/// The saved review of website request `intent` for a reinstall, rescue
+/// boot or SSH access reset, from `shown`, Ghost's answer to `account
+/// approve <intent>`: `{intent_id, kind, instance_id, instance_name,
+/// review, review_effects, notice, expires_at, operation_sha256}`. Ghost's
+/// rows of what the request sets (each pasted key by its fingerprint, data
+/// by size and SHA-256), what approving does and the notice below them;
+/// the operation itself only by its digest ([`operation_digest`]).
+///
+/// # Errors
+///
+/// A Ghost that gives no rows: the request is never approved unseen. An
+/// instance Ghost could not read, which it then neither names nor shows,
+/// nor the backup a reinstall keeps of it first.
+fn instance_review(intent: &str, shown: &Value) -> Result<Value> {
+    let view = shown.get("request").unwrap_or(shown);
+    let instance_id = field(&view["operation"], "instance_id")?;
+    // The notice that points at the review above it, where Ghost gives one;
+    // else the one that says what approving does itself.
+    let notice = if shown["review_notice"].is_string() {
+        &shown["review_notice"]
+    } else {
+        &shown["notice"]
+    };
+    if !review_rows(shown) || !notice.is_string() {
+        return Err(newer_desktop());
+    }
+    if !shown["instance_name"].is_string() {
+        return Err(Failure::new(
+            "instance_unavailable",
+            "The instance could not be read. Try again.",
+        ));
+    }
+    Ok(json!({
+        "intent_id": intent,
+        "kind": view["operation"]["kind"],
+        "instance_id": instance_id,
+        "instance_name": shown["instance_name"],
+        "review": shown["review"],
+        "review_effects": shown["review_effects"],
+        "notice": notice,
+        "expires_at": view["expires_at"],
+        "operation_sha256": operation_digest(&view["operation"]),
+    }))
+}
 pub fn approval_id(reference: &str, website: &str) -> Result<String> {
     let reference = reference.trim();
     if let Ok(id) = Uuid::parse_str(reference) {
@@ -1984,21 +2072,17 @@ impl Controller {
     }
     /// The review of website request `intent` for a reinstall, rescue boot
     /// or SSH access reset, from `shown`, Ghost's answer to `account
-    /// approve <intent>`: Ghost's rows of what the request sets (each pasted
-    /// key by its fingerprint, data by size and SHA-256), what approving
-    /// does and its notice, saved as an `instance_action` operation whose
-    /// review holds `{intent_id, kind, instance_id, review, review_effects,
-    /// instance_name, notice, expires_at, request}`. A Ghost that gives no
-    /// rows is refused: the request is never approved unseen.
+    /// approve <intent>` ([`instance_review`]), saved as an
+    /// `instance_action` operation: the one this request has unless it
+    /// ended, so reviewing it again replaces its review. Saved reviews of
+    /// other requests that expired unsent end too.
     async fn inspect_instance_action(
         &self,
         s: &Settings,
         intent: String,
         shown: Value,
     ) -> Result<Value> {
-        let view = shown.get("request").unwrap_or(&shown).clone();
-        let kind = view["operation"]["kind"].clone();
-        let instance_id = field(&view["operation"], "instance_id")?;
+        let view = shown.get("request").unwrap_or(&shown);
         // Ghost answers a request already carried out with the request
         // alone.
         if view["completed_job_id"].is_string() {
@@ -2007,22 +2091,52 @@ impl Controller {
                 "This request has already been approved.",
             ));
         }
-        if !review_rows(&shown) || !shown["notice"].is_string() {
-            return Err(newer_desktop());
+        let review = instance_review(&intent, &shown)?;
+        let seed = self.seed(s)?;
+        let operations = self.store.operations()?;
+        let saved = operations.iter().find(|op| {
+            op.kind == "instance_action"
+                && op.intent_id.as_deref() == Some(intent.as_str())
+                && op.ghost_seed_file.as_ref() == Some(&seed)
+                && op.api_url == s.api_url
+                && !["authorized", "expired", "discarded"].contains(&op.state.as_str())
+        });
+        let mut op = match saved {
+            Some(op) => op.clone(),
+            None => {
+                let mut op = self.op(s, "instance_action")?;
+                op.intent_id = Some(intent);
+                op
+            }
+        };
+        for stale in operations.iter().filter(|other| {
+            other.kind == "instance_action"
+                && other.id != op.id
+                && other.state == "prepared"
+                && review_expired(other)
+        }) {
+            let mut stale = stale.clone();
+            stale.state = "expired".into();
+            self.store.put(stale)?;
         }
-        let mut op = self.op(s, "instance_action")?;
-        op.intent_id = Some(intent.clone());
-        op.review = json!({"intent_id":intent,"kind":kind,"instance_id":instance_id,"review":shown["review"],"review_effects":shown["review_effects"],"instance_name":shown["instance_name"],"notice":shown["notice"],"expires_at":view["expires_at"],"request":view});
+        op.review = review;
         self.store.put(op.clone())?;
         Ok(json!(op))
     }
     /// Approves the reviewed instance action `id`: Ghost reads the request
-    /// again, which must still be the one reviewed (the stored operation,
-    /// the rows and what approving does), then `--yes` sends it, signed with
-    /// the account key and without any recovery key.
+    /// again, whose review must still be the one shown (the operation, the
+    /// instance, the rows, what approving does and its notice), then
+    /// `--yes` sends it, signed with the account key and without any
+    /// recovery key. A changed review replaces the saved one, to be
+    /// reviewed again. A request that started its job already (an approval
+    /// whose answer was lost) is only finished: its approval was accepted,
+    /// and what it shows now, such as the instance reinstalling, is not
+    /// asked again.
     async fn approve_instance_action(&self, s: &Settings, id: &str) -> Result<Value> {
         let mut op = self.store.get(id)?;
-        if op.kind != "instance_action" || op.state == "authorized" {
+        if op.kind != "instance_action"
+            || ["authorized", "expired", "discarded"].contains(&op.state.as_str())
+        {
             return Err(Failure::new(
                 "approval_state",
                 "This request has already been approved or is unavailable.",
@@ -2033,6 +2147,15 @@ impl Controller {
             .intent_id
             .clone()
             .ok_or_else(|| Failure::new("approval_state", "The request is missing."))?;
+        // Never sent, it started no job: Ghost refuses it once it expired.
+        if op.state == "prepared" && review_expired(&op) {
+            op.state = "expired".into();
+            self.store.put(op)?;
+            return Err(Failure::new(
+                "approval_expired",
+                "This request has expired. Create a new one on the website.",
+            ));
+        }
         let fresh = self
             .ghost(
                 s,
@@ -2043,26 +2166,26 @@ impl Controller {
             )
             .await?;
         let view = fresh.get("request").unwrap_or(&fresh);
+        let reviewed = view["operation"].is_object()
+            && op.review["operation_sha256"].as_str()
+                == Some(operation_digest(&view["operation"]).as_str());
         // Carried out already, as an interrupted approval may have been.
-        if view["completed_job_id"].is_string()
-            && view["operation"] == op.review["request"]["operation"]
-        {
+        if view["completed_job_id"].is_string() && reviewed {
             op.state = "authorized".into();
             op.job_id = view["completed_job_id"].as_str().map(str::to_owned);
             self.store.put(op)?;
             return Ok(view.clone());
         }
-        if !review_rows(&fresh) {
-            return Err(newer_desktop());
-        }
-        if view["operation"] != op.review["request"]["operation"]
-            || fresh["review"] != op.review["review"]
-            || fresh["review_effects"] != op.review["review_effects"]
-        {
-            return Err(Failure::new(
-                "approval_changed",
-                "The request changed. Review it again.",
-            ));
+        if !(view["started_job_id"].is_string() && reviewed) {
+            let review = instance_review(&intent, &fresh)?;
+            if review != op.review {
+                op.review = review;
+                self.store.put(op)?;
+                return Err(Failure::new(
+                    "approval_changed",
+                    "The request changed. Review it again.",
+                ));
+            }
         }
         op.state = "authorizing".into();
         self.store.put(op.clone())?;
@@ -2385,5 +2508,34 @@ impl Controller {
             ));
         }
         Ok(())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::utc_seconds;
+
+    /// Ghost's UTC times, with or without a fraction of a second, and
+    /// nothing else.
+    #[test]
+    fn utc_seconds_reads_ghosts_times() {
+        assert_eq!(utc_seconds("1970-01-01T00:00:00Z"), Some(0));
+        assert_eq!(utc_seconds("2000-02-29T23:59:59Z"), Some(951_868_799));
+        assert_eq!(utc_seconds("2026-11-20T12:15:00Z"), Some(1_795_176_900));
+        assert_eq!(
+            utc_seconds("2026-11-20T12:15:00.123456Z"),
+            Some(1_795_176_900)
+        );
+        assert_eq!(utc_seconds("2099-01-01T00:00:00Z"), Some(4_070_908_800));
+        for text in [
+            "",
+            "2026-11-20",
+            "2026-11-20T12:15:00",
+            "2026-11-20T12:15:00+07:00",
+            "2026-13-20T12:15:00Z",
+            "1969-12-31T23:59:59Z",
+            "soon",
+        ] {
+            assert_eq!(utc_seconds(text), None, "{text}");
+        }
     }
 }

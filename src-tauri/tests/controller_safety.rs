@@ -785,9 +785,17 @@ fn instance_action(kind: &str) -> (Value, Value) {
         ],
         "review_effects":["Reinstall destroys the current root filesystem and starts the instance if it is stopped."],
         "instance_name":"web",
-        "notice":"Approving reinstalls the instance. Inspect the request before approving.",
+        "review_notice":"Approving reinstalls the instance as shown above.",
+        "notice":"Approving reinstalls the instance, which destroys its root filesystem, and may keep a backup of an older instance first, which is charged. Inspect the request before approving.",
     });
     (operation, shown)
+}
+
+/// The SHA-256 of `operation` as JSON, as an instance action's review
+/// keeps it.
+fn digest(operation: &Value) -> String {
+    use sha2::Digest;
+    hex::encode(sha2::Sha256::digest(serde_json::to_vec(operation).unwrap()))
 }
 
 fn ghost_args(f: &Fixture) -> Option<Vec<String>> {
@@ -816,16 +824,22 @@ async fn instance_actions_are_reviewed_as_ghost_shows_them_and_approved_without_
             .unwrap();
         assert_eq!(op["kind"], "instance_action");
         assert_eq!(op["state"], "prepared");
-        let review = &op["review"];
-        assert_eq!(review["intent_id"], intent);
-        assert_eq!(review["kind"], kind);
-        assert_eq!(review["instance_id"], "web-id");
-        assert_eq!(review["review"], shown["review"]);
-        assert_eq!(review["review_effects"], shown["review_effects"]);
-        assert_eq!(review["instance_name"], "web");
-        assert_eq!(review["notice"], shown["notice"]);
-        assert_eq!(review["expires_at"], "2026-11-20T12:15:00Z");
-        assert_eq!(review["request"]["operation"], operation);
+        // Ghost's screen, with the notice that points at it, and the
+        // operation by its digest alone.
+        assert_eq!(
+            op["review"],
+            json!({
+                "intent_id": intent,
+                "kind": kind,
+                "instance_id": "web-id",
+                "instance_name": "web",
+                "review": shown["review"],
+                "review_effects": shown["review_effects"],
+                "notice": shown["review_notice"],
+                "expires_at": "2099-01-01T00:00:00Z",
+                "operation_sha256": digest(&operation),
+            })
+        );
         // The restore's approval is not this one's.
         assert_eq!(
             f.call(json!({"action":"approve_restore","id":op["id"],"recovery_seed_file":null}))
@@ -869,10 +883,22 @@ async fn instance_actions_are_reviewed_as_ghost_shows_them_and_approved_without_
             .code,
         "approval_state"
     );
+    // A Ghost that gives no notice for below the review shows the one that
+    // says what approving does itself.
+    let f = Fixture::new();
+    let (operation, mut shown) = instance_action("rescue_instance");
+    shown.as_object_mut().unwrap().remove("review_notice");
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    let op = f
+        .call(json!({"action":"inspect_restore","reference":uuid::Uuid::new_v4().to_string()}))
+        .await
+        .unwrap();
+    assert_eq!(op["review"]["notice"], shown["notice"]);
 }
 
 /// A kind this app does not know, or a Ghost that gives no screen for an
-/// instance action, is refused at the review, never approved.
+/// instance action, is refused at the review, never approved; so is one
+/// whose instance Ghost could not read, which its review would leave out.
 #[tokio::test]
 async fn an_unknown_kind_or_a_ghost_without_the_screen_needs_a_newer_desktop() {
     let f = Fixture::new();
@@ -885,6 +911,7 @@ async fn an_unknown_kind_or_a_ghost_without_the_screen_needs_a_newer_desktop() {
         json!({"operation":operation,"shown":{"review":[],"review_effects":[],"notice":shown["notice"]}}),
         json!({"operation":operation,"shown":{"review":shown["review"],"notice":shown["notice"]}}),
         json!({"operation":operation,"shown":{"review":[{"label":"Instance","value":1}],"review_effects":[],"notice":shown["notice"]}}),
+        json!({"operation":operation,"shown":{"review":shown["review"],"review_effects":[],"instance_name":"web"}}),
     ];
     for scenario in refusals {
         f.scenario(scenario.clone());
@@ -898,13 +925,29 @@ async fn an_unknown_kind_or_a_ghost_without_the_screen_needs_a_newer_desktop() {
             "{scenario}"
         );
     }
+    // Ghost names the instance only when it could read it.
+    let mut unread = shown.clone();
+    unread["instance_name"] = Value::Null;
+    unread["review"] = json!([{"label":"SSH keys","value":"work"}]);
+    f.scenario(json!({"operation":operation,"shown":unread}));
+    let refused = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
+        .await
+        .unwrap_err();
+    assert_eq!(refused.code, "instance_unavailable");
+    assert_eq!(
+        refused.message,
+        "The instance could not be read. Try again."
+    );
     assert!(f.controller.store.operations().unwrap().is_empty());
     assert!(ghost_args(&f).is_none());
 }
 
-/// The request approved is the one reviewed: a changed operation, a
-/// changed row (another saved key) or a changed effect (a backup kept
-/// first) is refused before `--yes`, and the review is read again.
+/// The request approved is the one last shown: a changed operation, a
+/// changed row (another saved key, or the instance's state), a changed
+/// effect (a backup kept first, or its lock's day) or an instance Ghost
+/// could not read is refused before `--yes`. A changed review replaces the
+/// saved one, so that is the one approved.
 #[tokio::test]
 async fn an_instance_action_that_changed_since_its_review_is_not_approved() {
     let f = Fixture::new();
@@ -915,12 +958,15 @@ async fn an_instance_action_that_changed_since_its_review_is_not_approved() {
         .call(json!({"action":"inspect_restore","reference":intent}))
         .await
         .unwrap();
+    let id = op["id"].as_str().unwrap();
     let mut other_key = operation.clone();
     other_key["request"]["ssh_public_keys"][0] = json!(
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEA other"
     );
     let mut other_row = shown.clone();
     other_row["review"][1]["value"] = json!("work, added");
+    let mut stopped = shown.clone();
+    stopped["review"][0]["value"] = json!("stopped, 2 vCPU, 4 GiB RAM, 20 GiB disk, Singapore");
     let mut other_effect = shown.clone();
     other_effect["review_effects"]
         .as_array_mut()
@@ -928,40 +974,223 @@ async fn an_instance_action_that_changed_since_its_review_is_not_approved() {
         .push(json!(
             "Keeps a backup first: up to $9.00, locked until 2026-11-27."
         ));
-    for scenario in [
-        json!({"operation":other_key,"shown":shown}),
-        json!({"operation":operation,"shown":other_row}),
-        json!({"operation":operation,"shown":other_effect}),
+    let mut next_day = other_effect.clone();
+    next_day["review_effects"][1] =
+        json!("Keeps a backup first: up to $9.00, locked until 2026-11-28.");
+    for (operation, shown) in [
+        (&other_key, &shown),
+        (&operation, &other_row),
+        (&operation, &stopped),
+        (&operation, &other_effect),
+        (&operation, &next_day),
+    ] {
+        f.scenario(json!({"operation":operation,"shown":shown}));
+        let refused = f
+            .call(json!({"action":"approve_instance_action","id":id}))
+            .await
+            .unwrap_err();
+        assert_eq!(refused.code, "approval_changed", "{shown}");
+        assert_eq!(refused.message, "The request changed. Review it again.");
+        assert!(ghost_args(&f).is_none(), "{shown}");
+        // Saved as it is now, for the dialog and the saved operation's
+        // Review to show.
+        let kept = f.controller.store.get(id).unwrap();
+        assert_eq!(kept.state, "prepared");
+        assert_eq!(kept.review["review"], shown["review"]);
+        assert_eq!(kept.review["review_effects"], shown["review_effects"]);
+        assert_eq!(kept.review["operation_sha256"], digest(operation));
+    }
+    assert_eq!(f.controller.store.operations().unwrap().len(), 1);
+    // A Ghost that stopped giving the screen, or could not read the
+    // instance, is refused too, and the review shown is kept.
+    let mut unread = next_day.clone();
+    unread["instance_name"] = Value::Null;
+    for (scenario, code) in [
+        (json!({"operation":operation}), "unsupported_approval"),
+        (
+            json!({"operation":operation,"shown":unread}),
+            "instance_unavailable",
+        ),
     ] {
         f.scenario(scenario.clone());
         assert_eq!(
-            f.call(json!({"action":"approve_instance_action","id":op["id"]}))
+            f.call(json!({"action":"approve_instance_action","id":id}))
                 .await
                 .unwrap_err()
                 .code,
-            "approval_changed",
+            code,
             "{scenario}"
         );
-        assert!(ghost_args(&f).is_none(), "{scenario}");
-        let kept = f.controller.store.get(op["id"].as_str().unwrap()).unwrap();
-        assert_eq!(kept.state, "prepared");
+        assert_eq!(
+            f.controller.store.get(id).unwrap().review["review_effects"],
+            next_day["review_effects"]
+        );
     }
-    // A Ghost that stopped giving the screen is refused too.
-    f.scenario(json!({"operation":operation}));
+    assert!(ghost_args(&f).is_none());
+    // The request as first reviewed is not the one last shown.
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    assert_eq!(
+        f.call(json!({"action":"approve_instance_action","id":id}))
+            .await
+            .unwrap_err()
+            .code,
+        "approval_changed"
+    );
+    assert!(ghost_args(&f).is_none());
+    // Unchanged since it was last shown, it is approved.
+    let approved = f
+        .call(json!({"action":"approve_instance_action","id":id}))
+        .await
+        .unwrap();
+    assert_eq!(approved["job_id"], "job-two");
+}
+
+/// An approval whose answer was lost while its job started is finished
+/// when it is approved again: the job accepted it, and the instance now
+/// reinstalling is not a change to review.
+#[tokio::test]
+async fn an_instance_action_whose_answer_was_lost_is_finished_once_its_job_started() {
+    let f = Fixture::new();
+    let intent = uuid::Uuid::new_v4().to_string();
+    let (operation, shown) = instance_action("reinstall_instance");
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    let op = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
+        .await
+        .unwrap();
+    let id = op["id"].as_str().unwrap();
+    f.scenario(json!({"operation":operation,"shown":shown,"fail_approval":true}));
+    f.call(json!({"action":"approve_instance_action","id":id}))
+        .await
+        .unwrap_err();
+    assert_eq!(f.controller.store.get(id).unwrap().state, "needs_resume");
+    let mut reinstalling = shown.clone();
+    reinstalling["review"][0]["value"] =
+        json!("reinstalling, 2 vCPU, 4 GiB RAM, 20 GiB disk, Singapore");
+    reinstalling["review_effects"] = json!([]);
+    fs::write(f.root.path().join("ghost-args.json"), b"[]").unwrap();
+    f.scenario(json!({"operation":operation,"shown":reinstalling,"started_job_id":"job-two"}));
+    let finished = f
+        .call(json!({"action":"approve_instance_action","id":id}))
+        .await
+        .unwrap();
+    assert_eq!(finished["job_id"], "job-two");
+    let args = ghost_args(&f).unwrap();
+    assert!(args.iter().any(|a| a == "--yes"), "{args:?}");
+    let saved = f.controller.store.get(id).unwrap();
+    assert_eq!(saved.state, "authorized");
+    // A job started for another operation is not this approval's.
+    let f = Fixture::new();
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    let op = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
+        .await
+        .unwrap();
+    let mut other = operation.clone();
+    other["request"]["ssh_public_keys"] = json!([]);
+    f.scenario(json!({"operation":other,"shown":reinstalling,"started_job_id":"job-two"}));
     assert_eq!(
         f.call(json!({"action":"approve_instance_action","id":op["id"]}))
             .await
             .unwrap_err()
             .code,
-        "unsupported_approval"
+        "approval_changed"
     );
-    // Unchanged, it is approved.
+    assert!(ghost_args(&f).is_none());
+}
+
+/// A review keeps the operation by its digest, not its data (a cloud-init
+/// can be about a megabyte); a request reviewed again keeps one saved
+/// review; and one that expired unsent is no longer approved and ends.
+#[tokio::test]
+async fn instance_action_reviews_are_small_one_per_request_and_expire() {
+    let f = Fixture::new();
+    let intent = uuid::Uuid::new_v4().to_string();
+    let (mut operation, shown) = instance_action("reinstall_instance");
+    let cloud_init = format!("#cloud-config\n{}", "x".repeat(512 * 1024));
+    operation["request"]["cloud_init"] = json!(cloud_init);
     f.scenario(json!({"operation":operation,"shown":shown}));
-    let approved = f
-        .call(json!({"action":"approve_instance_action","id":op["id"]}))
+    let first = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
         .await
         .unwrap();
-    assert_eq!(approved["job_id"], "job-two");
+    let again = f
+        .call(json!({"action":"inspect_restore","reference":format!("ghostrack://approve?intent={intent}")}))
+        .await
+        .unwrap();
+    assert_eq!(again["id"], first["id"]);
+    assert_eq!(again["review"]["operation_sha256"], digest(&operation));
+    let journal = fs::read(f.root.path().join("state/operations.json")).unwrap();
+    assert!(journal.len() < 8 * 1024, "{} bytes", journal.len());
+    assert!(!String::from_utf8_lossy(&journal).contains("xxxxxxxx"));
+    // After a lost answer, reviewing it again keeps its state.
+    f.scenario(json!({"operation":operation,"shown":shown,"fail_approval":true}));
+    f.call(json!({"action":"approve_instance_action","id":first["id"]}))
+        .await
+        .unwrap_err();
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    let resumed = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
+        .await
+        .unwrap();
+    assert_eq!(resumed["id"], first["id"]);
+    assert_eq!(resumed["state"], "needs_resume");
+    assert_eq!(f.controller.store.operations().unwrap().len(), 1);
+
+    // Expired unsent: refused without asking Ghost, and ended.
+    let f = Fixture::new();
+    let expired = uuid::Uuid::new_v4().to_string();
+    f.scenario(json!({"operation":operation,"shown":shown,"expires_at":"2026-01-01T00:00:00.5Z"}));
+    let old = f
+        .call(json!({"action":"inspect_restore","reference":expired}))
+        .await
+        .unwrap();
+    let other = f
+        .call(json!({"action":"inspect_restore","reference":uuid::Uuid::new_v4().to_string()}))
+        .await
+        .unwrap();
+    assert_eq!(
+        f.controller
+            .store
+            .get(old["id"].as_str().unwrap())
+            .unwrap()
+            .state,
+        "expired",
+        "another review ends it"
+    );
+    let refused = f
+        .call(json!({"action":"approve_instance_action","id":other["id"]}))
+        .await
+        .unwrap_err();
+    assert_eq!(refused.code, "approval_expired");
+    assert_eq!(
+        refused.message,
+        "This request has expired. Create a new one on the website."
+    );
+    assert_eq!(
+        f.controller
+            .store
+            .get(other["id"].as_str().unwrap())
+            .unwrap()
+            .state,
+        "expired"
+    );
+    assert!(ghost_args(&f).is_none());
+    assert_eq!(
+        f.call(json!({"action":"approve_instance_action","id":other["id"]}))
+            .await
+            .unwrap_err()
+            .code,
+        "approval_state"
+    );
+    // Reviewed again, an expired request gets a new saved review.
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    let renewed = f
+        .call(json!({"action":"inspect_restore","reference":expired}))
+        .await
+        .unwrap();
+    assert_ne!(renewed["id"], old["id"]);
+    assert_eq!(renewed["state"], "prepared");
 }
 
 /// A request carried out already is not reviewed again; one carried out
