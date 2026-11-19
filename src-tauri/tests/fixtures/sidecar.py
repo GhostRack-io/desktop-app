@@ -72,7 +72,14 @@ if 'backup' in args and 'get' in args: reply(scenario['backup'])
 if 'approve' in args:
     if '--yes' not in args and '--json' in args and scenario.get('forced_backup'):
         print('Backup 1 of web\n' + scenario['forced_backup'], file=sys.stderr)
-    if '--yes' not in args: reply({'request':{'operation':scenario['operation'],'started_job_id':scenario.get('started_job_id')}})
+    # A request carried out already: Ghost answers with the request alone.
+    if '--yes' not in args and scenario.get('completed_job_id'): reply({'operation':scenario['operation'],'completed_job_id':scenario['completed_job_id']})
+    # An instance action's screen ('shown': review, review_effects,
+    # instance_name, notice) beside the request.
+    if '--yes' not in args: reply({'request':{'operation':scenario['operation'],'started_job_id':scenario.get('started_job_id'),**({'expires_at':'2026-11-20T12:15:00Z'} if 'shown' in scenario else {})},**scenario.get('shown',{})})
+    if scenario['operation']['kind'] in ('reinstall_instance','reset_instance_access','rescue_instance'):
+        Path(__file__).with_name('ghost-args.json').write_text(json.dumps(args))
+        reply({'job_id':'job-two'})
     if not option('--recovery-seed-file'): fail('recovery_key_missing')
     if scenario.get('fail_authorization'): fail('destination_unavailable')
     reply({'job_id':'job-one'})

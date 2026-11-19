@@ -103,6 +103,12 @@ pub enum Request {
         id: String,
         recovery_seed_file: Option<PathBuf>,
     },
+    /// Approves a reviewed reinstall, rescue boot or SSH access reset
+    /// (`ghost account approve <intent> --yes`), which needs no recovery
+    /// key: Ghost signs it with the account key.
+    ApproveInstanceAction {
+        id: String,
+    },
     /// Keeps a restore's destination whose deletion waits (`ghost instance
     /// keep`), then reviews the restore again.
     KeepRestoreDestination {
@@ -498,6 +504,35 @@ pub fn validate_url(text: &str) -> Result<Url> {
         ));
     }
     Ok(url)
+}
+/// The website requests the desktop approves without a recovery key, from
+/// Ghost's review of them: a reinstall, an SSH access reset and a rescue
+/// boot.
+const INSTANCE_ACTIONS: [&str; 3] = [
+    "reinstall_instance",
+    "reset_instance_access",
+    "rescue_instance",
+];
+/// The refusal of a website request this app does not know how to show:
+/// a kind newer than it, or a Ghost that gives no review of it.
+fn newer_desktop() -> Failure {
+    Failure::new(
+        "unsupported_approval",
+        "This approval needs a newer GhostRack desktop.",
+    )
+}
+/// Whether Ghost's answer to `account approve` carries the approval
+/// screen: its rows, a list of `{label, value}` text (at least one), and
+/// what approving does below them (`review_effects`), a list of sentences.
+fn review_rows(shown: &Value) -> bool {
+    shown["review"].as_array().is_some_and(|rows| {
+        !rows.is_empty()
+            && rows
+                .iter()
+                .all(|row| row["label"].is_string() && row["value"].is_string())
+    }) && shown["review_effects"]
+        .as_array()
+        .is_some_and(|sentences| sentences.iter().all(Value::is_string))
 }
 pub fn approval_id(reference: &str, website: &str) -> Result<String> {
     let reference = reference.trim();
@@ -991,6 +1026,7 @@ impl Controller {
                 id,
                 recovery_seed_file,
             } => self.approve_restore(&s, &id, recovery_seed_file).await,
+            Request::ApproveInstanceAction { id } => self.approve_instance_action(&s, &id).await,
             Request::KeepRestoreDestination { id } => self.keep_restore_destination(&s, &id).await,
             Request::PrepareRotation { file } => {
                 absolute(&file)?;
@@ -1840,11 +1876,11 @@ impl Controller {
             .await?;
         let authoritative = request.get("request").unwrap_or(&request).clone();
         let kind = authoritative["operation"]["kind"].as_str().unwrap_or("");
+        if INSTANCE_ACTIONS.contains(&kind) {
+            return self.inspect_instance_action(s, intent, request).await;
+        }
         if !["restore_backup", "create_from_backup"].contains(&kind) {
-            return Err(Failure::new(
-                "unsupported_approval",
-                "This request is not a hosted backup restore.",
-            ));
+            return Err(newer_desktop());
         }
         let backup_id = field(&authoritative["operation"], "backup_id")?;
         Uuid::parse_str(&backup_id)
@@ -1945,6 +1981,116 @@ impl Controller {
         }
         self.store.put(op.clone())?;
         Ok(json!(op))
+    }
+    /// The review of website request `intent` for a reinstall, rescue boot
+    /// or SSH access reset, from `shown`, Ghost's answer to `account
+    /// approve <intent>`: Ghost's rows of what the request sets (each pasted
+    /// key by its fingerprint, data by size and SHA-256), what approving
+    /// does and its notice, saved as an `instance_action` operation whose
+    /// review holds `{intent_id, kind, instance_id, review, review_effects,
+    /// instance_name, notice, expires_at, request}`. A Ghost that gives no
+    /// rows is refused: the request is never approved unseen.
+    async fn inspect_instance_action(
+        &self,
+        s: &Settings,
+        intent: String,
+        shown: Value,
+    ) -> Result<Value> {
+        let view = shown.get("request").unwrap_or(&shown).clone();
+        let kind = view["operation"]["kind"].clone();
+        let instance_id = field(&view["operation"], "instance_id")?;
+        // Ghost answers a request already carried out with the request
+        // alone.
+        if view["completed_job_id"].is_string() {
+            return Err(Failure::new(
+                "approval_state",
+                "This request has already been approved.",
+            ));
+        }
+        if !review_rows(&shown) || !shown["notice"].is_string() {
+            return Err(newer_desktop());
+        }
+        let mut op = self.op(s, "instance_action")?;
+        op.intent_id = Some(intent.clone());
+        op.review = json!({"intent_id":intent,"kind":kind,"instance_id":instance_id,"review":shown["review"],"review_effects":shown["review_effects"],"instance_name":shown["instance_name"],"notice":shown["notice"],"expires_at":view["expires_at"],"request":view});
+        self.store.put(op.clone())?;
+        Ok(json!(op))
+    }
+    /// Approves the reviewed instance action `id`: Ghost reads the request
+    /// again, which must still be the one reviewed (the stored operation,
+    /// the rows and what approving does), then `--yes` sends it, signed with
+    /// the account key and without any recovery key.
+    async fn approve_instance_action(&self, s: &Settings, id: &str) -> Result<Value> {
+        let mut op = self.store.get(id)?;
+        if op.kind != "instance_action" || op.state == "authorized" {
+            return Err(Failure::new(
+                "approval_state",
+                "This request has already been approved or is unavailable.",
+            ));
+        }
+        self.check_account_binding(s, &op).await?;
+        let intent = op
+            .intent_id
+            .clone()
+            .ok_or_else(|| Failure::new("approval_state", "The request is missing."))?;
+        let fresh = self
+            .ghost(
+                s,
+                vec!["account".into(), "approve".into(), intent.clone()],
+                None,
+                None,
+                false,
+            )
+            .await?;
+        let view = fresh.get("request").unwrap_or(&fresh);
+        // Carried out already, as an interrupted approval may have been.
+        if view["completed_job_id"].is_string()
+            && view["operation"] == op.review["request"]["operation"]
+        {
+            op.state = "authorized".into();
+            op.job_id = view["completed_job_id"].as_str().map(str::to_owned);
+            self.store.put(op)?;
+            return Ok(view.clone());
+        }
+        if !review_rows(&fresh) {
+            return Err(newer_desktop());
+        }
+        if view["operation"] != op.review["request"]["operation"]
+            || fresh["review"] != op.review["review"]
+            || fresh["review_effects"] != op.review["review_effects"]
+        {
+            return Err(Failure::new(
+                "approval_changed",
+                "The request changed. Review it again.",
+            ));
+        }
+        op.state = "authorizing".into();
+        self.store.put(op.clone())?;
+        let result = self
+            .ghost(
+                s,
+                vec!["account".into(), "approve".into(), intent, "--yes".into()],
+                None,
+                None,
+                true,
+            )
+            .await;
+        match result {
+            Ok(v) => {
+                op.state = "authorized".into();
+                op.job_id = v["job_id"]
+                    .as_str()
+                    .or_else(|| v["completed_job_id"].as_str())
+                    .map(str::to_owned);
+                self.store.put(op)?;
+                Ok(v)
+            }
+            Err(e) => {
+                op.state = "needs_resume".into();
+                self.store.put(op)?;
+                Err(e)
+            }
+        }
     }
     async fn keep_restore_destination(&self, s: &Settings, id: &str) -> Result<Value> {
         let op = self.store.get(id)?;

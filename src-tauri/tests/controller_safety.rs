@@ -772,3 +772,225 @@ async fn payouts_are_requested_in_mmx_and_dollar_reviews_are_never_sent() {
         .unwrap_err();
     assert_eq!(kept.code, "payout_state");
 }
+
+/// Ghost's answer to `account approve` for an instance action of `kind`:
+/// the request, with a pasted key, and the approval screen's rows.
+fn instance_action(kind: &str) -> (Value, Value) {
+    let operation = json!({"kind":kind,"instance_id":"web-id","request":{"ssh_public_keys":["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f laptop"]}});
+    let shown = json!({
+        "review":[
+            {"label":"Instance","value":"running, 2 vCPU, 4 GiB RAM, 20 GiB disk, Singapore"},
+            {"label":"SSH keys","value":"work"},
+            {"label":"","value":"ssh-ed25519 SHA256:ZkAslGjFiUHdGf/WUL8rQvkib4PTvQatUV0OUQSncCA laptop"},
+        ],
+        "review_effects":["Reinstall destroys the current root filesystem and starts the instance if it is stopped."],
+        "instance_name":"web",
+        "notice":"Approving reinstalls the instance. Inspect the request before approving.",
+    });
+    (operation, shown)
+}
+
+fn ghost_args(f: &Fixture) -> Option<Vec<String>> {
+    fs::read(f.root.path().join("ghost-args.json"))
+        .ok()
+        .map(|bytes| serde_json::from_slice(&bytes).unwrap())
+}
+
+/// A reinstall, an SSH access reset and a rescue boot are reviewed from
+/// Ghost's screen and approved with `--yes` and no recovery key (item
+/// 296b); a restore still needs one.
+#[tokio::test]
+async fn instance_actions_are_reviewed_as_ghost_shows_them_and_approved_without_a_recovery_key() {
+    for kind in [
+        "reinstall_instance",
+        "reset_instance_access",
+        "rescue_instance",
+    ] {
+        let f = Fixture::new();
+        let intent = uuid::Uuid::new_v4().to_string();
+        let (operation, shown) = instance_action(kind);
+        f.scenario(json!({"operation":operation,"shown":shown}));
+        let op = f
+            .call(json!({"action":"inspect_restore","reference":format!("ghostrack://approve?intent={intent}")}))
+            .await
+            .unwrap();
+        assert_eq!(op["kind"], "instance_action");
+        assert_eq!(op["state"], "prepared");
+        let review = &op["review"];
+        assert_eq!(review["intent_id"], intent);
+        assert_eq!(review["kind"], kind);
+        assert_eq!(review["instance_id"], "web-id");
+        assert_eq!(review["review"], shown["review"]);
+        assert_eq!(review["review_effects"], shown["review_effects"]);
+        assert_eq!(review["instance_name"], "web");
+        assert_eq!(review["notice"], shown["notice"]);
+        assert_eq!(review["expires_at"], "2026-11-20T12:15:00Z");
+        assert_eq!(review["request"]["operation"], operation);
+        // The restore's approval is not this one's.
+        assert_eq!(
+            f.call(json!({"action":"approve_restore","id":op["id"],"recovery_seed_file":null}))
+                .await
+                .unwrap_err()
+                .code,
+            "approval_state"
+        );
+        assert!(ghost_args(&f).is_none());
+        let approved = f
+            .call(json!({"action":"approve_instance_action","id":op["id"]}))
+            .await
+            .unwrap();
+        assert_eq!(approved["job_id"], "job-two");
+        let args = ghost_args(&f).unwrap();
+        let at = args.iter().position(|a| a == "account").unwrap();
+        assert_eq!(args[at..], ["account", "approve", &intent, "--yes"]);
+        assert!(
+            !args.iter().any(|a| a == "--recovery-seed-file"),
+            "{args:?}"
+        );
+        let saved = f.controller.store.get(op["id"].as_str().unwrap()).unwrap();
+        assert_eq!(saved.state, "authorized");
+        assert_eq!(saved.job_id.as_deref(), Some("job-two"));
+        // Approved once.
+        assert_eq!(
+            f.call(json!({"action":"approve_instance_action","id":op["id"]}))
+                .await
+                .unwrap_err()
+                .code,
+            "approval_state"
+        );
+    }
+    // A restore is not approved as an instance action.
+    let f = Fixture::new();
+    let restore = f.restore(false);
+    assert_eq!(
+        f.call(json!({"action":"approve_instance_action","id":restore}))
+            .await
+            .unwrap_err()
+            .code,
+        "approval_state"
+    );
+}
+
+/// A kind this app does not know, or a Ghost that gives no screen for an
+/// instance action, is refused at the review, never approved.
+#[tokio::test]
+async fn an_unknown_kind_or_a_ghost_without_the_screen_needs_a_newer_desktop() {
+    let f = Fixture::new();
+    let intent = uuid::Uuid::new_v4().to_string();
+    let (operation, shown) = instance_action("reinstall_instance");
+    let refusals = [
+        json!({"operation":{"kind":"rotate_gateway_keys","instance_id":"web-id"}}),
+        json!({"operation":operation}),
+        json!({"operation":operation,"shown":{"notice":shown["notice"]}}),
+        json!({"operation":operation,"shown":{"review":[],"review_effects":[],"notice":shown["notice"]}}),
+        json!({"operation":operation,"shown":{"review":shown["review"],"notice":shown["notice"]}}),
+        json!({"operation":operation,"shown":{"review":[{"label":"Instance","value":1}],"review_effects":[],"notice":shown["notice"]}}),
+    ];
+    for scenario in refusals {
+        f.scenario(scenario.clone());
+        let refused = f
+            .call(json!({"action":"inspect_restore","reference":intent}))
+            .await
+            .unwrap_err();
+        assert_eq!(refused.code, "unsupported_approval", "{scenario}");
+        assert_eq!(
+            refused.message, "This approval needs a newer GhostRack desktop.",
+            "{scenario}"
+        );
+    }
+    assert!(f.controller.store.operations().unwrap().is_empty());
+    assert!(ghost_args(&f).is_none());
+}
+
+/// The request approved is the one reviewed: a changed operation, a
+/// changed row (another saved key) or a changed effect (a backup kept
+/// first) is refused before `--yes`, and the review is read again.
+#[tokio::test]
+async fn an_instance_action_that_changed_since_its_review_is_not_approved() {
+    let f = Fixture::new();
+    let intent = uuid::Uuid::new_v4().to_string();
+    let (operation, shown) = instance_action("reinstall_instance");
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    let op = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
+        .await
+        .unwrap();
+    let mut other_key = operation.clone();
+    other_key["request"]["ssh_public_keys"][0] = json!(
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEA other"
+    );
+    let mut other_row = shown.clone();
+    other_row["review"][1]["value"] = json!("work, added");
+    let mut other_effect = shown.clone();
+    other_effect["review_effects"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!(
+            "Keeps a backup first: up to $9.00, locked until 2026-11-27."
+        ));
+    for scenario in [
+        json!({"operation":other_key,"shown":shown}),
+        json!({"operation":operation,"shown":other_row}),
+        json!({"operation":operation,"shown":other_effect}),
+    ] {
+        f.scenario(scenario.clone());
+        assert_eq!(
+            f.call(json!({"action":"approve_instance_action","id":op["id"]}))
+                .await
+                .unwrap_err()
+                .code,
+            "approval_changed",
+            "{scenario}"
+        );
+        assert!(ghost_args(&f).is_none(), "{scenario}");
+        let kept = f.controller.store.get(op["id"].as_str().unwrap()).unwrap();
+        assert_eq!(kept.state, "prepared");
+    }
+    // A Ghost that stopped giving the screen is refused too.
+    f.scenario(json!({"operation":operation}));
+    assert_eq!(
+        f.call(json!({"action":"approve_instance_action","id":op["id"]}))
+            .await
+            .unwrap_err()
+            .code,
+        "unsupported_approval"
+    );
+    // Unchanged, it is approved.
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    let approved = f
+        .call(json!({"action":"approve_instance_action","id":op["id"]}))
+        .await
+        .unwrap();
+    assert_eq!(approved["job_id"], "job-two");
+}
+
+/// A request carried out already is not reviewed again; one carried out
+/// while its approval was interrupted is recorded as approved.
+#[tokio::test]
+async fn an_instance_action_carried_out_already_is_not_approved_again() {
+    let f = Fixture::new();
+    let intent = uuid::Uuid::new_v4().to_string();
+    let (operation, shown) = instance_action("rescue_instance");
+    f.scenario(json!({"operation":operation,"shown":shown}));
+    let op = f
+        .call(json!({"action":"inspect_restore","reference":intent}))
+        .await
+        .unwrap();
+    f.scenario(json!({"operation":operation,"shown":shown,"completed_job_id":"job-one"}));
+    assert_eq!(
+        f.call(json!({"action":"inspect_restore","reference":intent}))
+            .await
+            .unwrap_err()
+            .code,
+        "approval_state"
+    );
+    let done = f
+        .call(json!({"action":"approve_instance_action","id":op["id"]}))
+        .await
+        .unwrap();
+    assert_eq!(done["completed_job_id"], "job-one");
+    assert!(ghost_args(&f).is_none());
+    let saved = f.controller.store.get(op["id"].as_str().unwrap()).unwrap();
+    assert_eq!(saved.state, "authorized");
+    assert_eq!(saved.job_id.as_deref(), Some("job-one"));
+}
