@@ -1095,7 +1095,7 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .console__text{font-size:var(--text-sm);line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
 
 
-:is(.filters,.filters__body){display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));align-items:end;gap:var(--space-3)}
+:is(.filters,.filters__body){display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,10rem),1fr));align-items:end;gap:var(--space-3)}
 :is(.filters,.filters__body)>.btn:last-child{grid-column-end:-1;justify-self:end}
 .filters>.btn:not(.filters__apply):nth-last-child(2){grid-column-end:-1;justify-self:end}
 .filters .field{max-inline-size:26rem}
