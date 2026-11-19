@@ -49,25 +49,36 @@ test('review small-window payment and restore dialogs',async({page})=>{
 
 test('review the instance action dialog at small and wide windows in both themes',async({page})=>{
   await mkdir(shots,{recursive:true});
+  // The lines the instance name in the dialog title is drawn on.
+  const nameLines=()=>page.evaluate(()=>{
+    const name=document.querySelector('#dialog-title .title-name')!, range=document.createRange();
+    range.selectNodeContents(name);
+    return new Set([...range.getClientRects()].map(rect=>Math.round(rect.top))).size;
+  });
   for (const theme of ['light','dark']) {
     const state=structuredClone(fixture); state.settings.theme=theme;
     await openDesktop(page,state);
     for (const width of [760,1180]) {
       await page.setViewportSize({width,height:width<1000 ? 600 : 820});
       await page.goto('/#account');
-      await page.getByLabel('Approval link or request ID').fill('c0000000-0000-4000-8000-000000002961');
-      await page.getByRole('button',{name:'Review request'}).click();
-      await page.getByRole('button',{name:'Approve',exact:true}).scrollIntoViewIfNeeded();
-      await expect(page.getByRole('button',{name:'Approve',exact:true})).toBeInViewport();
-      const sizes=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,dialog:[...document.querySelectorAll('#dialog .fact dd, #dialog .modal-body')].every(node=>node.scrollWidth <= node.clientWidth)}));
-      expect(sizes.scroll).toBeLessThanOrEqual(width);
-      expect(sizes.dialog).toBe(true);
-      const buttons=await page.locator('#dialog .modal-actions button').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));
-      expect(Math.abs(buttons[0]-buttons[1])).toBeLessThan(1);
-      await page.screenshot({animations:'disabled',path:`${shots}/instance-action-${theme}-${width}-end.png`});
-      await page.locator('#dialog-title').scrollIntoViewIfNeeded();
-      await page.screenshot({animations:'disabled',path:`${shots}/instance-action-${theme}-${width}.png`});
-      await page.getByRole('button',{name:'Cancel',exact:true}).click();
+      for (const [reference,kind] of [['c0000000-0000-4000-8000-000000002962','rescue'],['c0000000-0000-4000-8000-000000002963','reset'],['c0000000-0000-4000-8000-000000002964','long'],['c0000000-0000-4000-8000-000000002961','reinstall']]) {
+        await page.getByLabel('Approval link or request ID').fill(reference);
+        await page.getByRole('button',{name:'Review request'}).click();
+        await page.getByRole('button',{name:'Approve',exact:true}).scrollIntoViewIfNeeded();
+        await expect(page.getByRole('button',{name:'Approve',exact:true})).toBeInViewport();
+        const sizes=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,dialog:[...document.querySelectorAll('#dialog .fact dd, #dialog .modal-body, #dialog .modal-head h2')].every(node=>node.scrollWidth <= node.clientWidth)}));
+        expect(sizes.scroll).toBeLessThanOrEqual(width);
+        expect(sizes.dialog).toBe(true);
+        // A name that fits the dialog is never broken, as at its hyphens; a longer one wraps inside it.
+        if (kind === 'long') expect(await nameLines()).toBeGreaterThan(1);
+        else expect(await nameLines()).toBe(1);
+        const buttons=await page.locator('#dialog .modal-actions button').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));
+        expect(Math.abs(buttons[0]-buttons[1])).toBeLessThan(1);
+        await page.screenshot({animations:'disabled',path:`${shots}/instance-action-${kind}-${theme}-${width}-end.png`});
+        await page.locator('#dialog-title').scrollIntoViewIfNeeded();
+        await page.screenshot({animations:'disabled',path:`${shots}/instance-action-${kind}-${theme}-${width}.png`});
+        await page.getByRole('button',{name:'Cancel',exact:true}).click();
+      }
     }
   }
 });

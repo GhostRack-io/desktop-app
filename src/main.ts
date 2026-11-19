@@ -275,20 +275,21 @@ function payoutReview(op:Json) {
 function operationsView(limit:number, paymentsOnly=false) {
   return [...snapshot.operations].filter((op:Json)=>!paymentsOnly || op.transaction_id).reverse().slice(0,limit).map((op:Json) => {
     if (['payout','payout_address'].includes(op.kind) && ['prepared','submitting','uncertain','failed'].includes(op.state)) return payoutDraft(op);
-    const payment = Boolean(op.transaction_id), active = !['discarded','complete','authorized','included','failed','expired'].includes(op.state);
+    const payment = Boolean(op.transaction_id), state = instanceActionExpired(op) ? 'expired' : op.state, active = !['discarded','complete','authorized','included','failed','expired'].includes(state);
     let actions = '';
     if (payment) { actions = `<button class="btn btn--small" data-status="${e(op.id)}">Check status</button>` + (op.state === 'prepared' ? `<button class="btn btn--small" data-review-payment="${e(op.id)}">Review</button><button class="btn btn--small btn--quiet" data-discard="${e(op.id)}">Discard</button>` : ['uncertain','submitting','broadcast','pending'].includes(op.state) ? `<button class="btn btn--small" data-review-payment="${e(op.id)}">Review same payment</button>` : ''); }
     else if (op.kind === 'restore' && active) actions = `<button class="btn btn--small" data-review-restore="${e(op.id)}">${op.state === 'prepared' ? 'Review' : 'Resume authorization'}</button>`;
     else if (op.kind === 'instance_action' && active) actions = `<button class="btn btn--small" data-review-instance-action="${e(op.id)}">Review</button>`;
     else if (op.kind === 'rotation' && active) actions = `<button class="btn btn--small" data-rotation="${e(op.id)}">${op.state === 'prepared' ? 'Review' : 'Review / check rotation'}</button>`;
-    return `<article class="operation"><div><h3>${e(op.kind === 'instance_action' ? INSTANCE_ACTION_NAMES[op.review?.kind] || op.kind : ({send:'MMX payment',top_up:'GhostRack top-up',activation:'Account activation payment',restore:'Hosted restore',rotation:'Account key rotation',payout:'Payout request',payout_address:'Payout address change'} as Json)[op.kind] || op.kind)}${payment ? ' · '+e(op.review.amount)+' MMX' : op.kind === 'payout' ? ' · '+e(payoutAmount(op)) : ''}</h3><span class="note">${e(new Date(op.created_at*1000).toLocaleString())}${payment ? ` · ${e(op.transaction_id.slice(0,12))}…` : ''}${payment && op.confirmations != null ? ` · ${e(op.confirmations >= 10 ? '10+' : op.confirmations)} confirmations` : ''}</span>${badge(op.state === 'included' ? 'Confirmed' : op.state,['complete','authorized','included'].includes(op.state) ? 'success' : ['uncertain','needs_resume','failed','expired'].includes(op.state) ? 'warning' : active ? 'working' : 'info')}</div><div class="toolbar-row">${actions}</div></article>`;
+    return `<article class="operation"><div><h3>${e(op.kind === 'instance_action' ? INSTANCE_ACTION_NAMES[op.review?.kind] || op.kind : ({send:'MMX payment',top_up:'GhostRack top-up',activation:'Account activation payment',restore:'Hosted restore',rotation:'Account key rotation',payout:'Payout request',payout_address:'Payout address change'} as Json)[op.kind] || op.kind)}${payment ? ' · '+e(op.review.amount)+' MMX' : op.kind === 'payout' ? ' · '+e(payoutAmount(op)) : ''}</h3><span class="note">${e(new Date(op.created_at*1000).toLocaleString())}${payment ? ` · ${e(op.transaction_id.slice(0,12))}…` : ''}${payment && op.confirmations != null ? ` · ${e(op.confirmations >= 10 ? '10+' : op.confirmations)} confirmations` : ''}</span>${badge(state === 'included' ? 'Confirmed' : state,['complete','authorized','included'].includes(state) ? 'success' : ['uncertain','needs_resume','failed','expired'].includes(state) ? 'warning' : active ? 'working' : 'info')}</div><div class="toolbar-row">${actions}</div></article>`;
   }).join('');
 }
-function modal(title:string, body:string, actions:string = '', layout = '', closeLabel = 'Close') {
+// A title's name (titleName) follows it whole: the title breaks before the name, not inside it.
+function modal(title:string, body:string, actions:string = '', layout = '', closeLabel = 'Close', titleName = '') {
   dialog.dataset.layout = layout;
   if (!dialog.open) modalReturnFocus = document.activeElement as HTMLElement | null;
   document.querySelector<HTMLElement>('#toast')!.hidden = true;
-  document.querySelector('#dialog-content')!.innerHTML = `<div class="modal-body"><div class="modal-head"><h2 id="dialog-title" tabindex="-1">${e(title)}</h2><button class="close-button" data-close aria-label="Close dialog">×</button></div>${body}<p id="dialog-status" class="notice-local" role="status" aria-live="polite" hidden></p><p id="dialog-error" class="notice-local warning" role="alert" aria-live="assertive" hidden></p><div class="modal-actions">${button(closeLabel,'close')}${actions}</div></div>`;
+  document.querySelector('#dialog-content')!.innerHTML = `<div class="modal-body"><div class="modal-head"><h2 id="dialog-title" tabindex="-1">${e(title)}${titleName ? ` <span class="title-name">${e(titleName)}</span>` : ''}</h2><button class="close-button" data-close aria-label="Close dialog">×</button></div>${body}<p id="dialog-status" class="notice-local" role="status" aria-live="polite" hidden></p><p id="dialog-error" class="notice-local warning" role="alert" aria-live="assertive" hidden></p><div class="modal-actions">${button(closeLabel,'close')}${actions}</div></div>`;
   if (!dialog.open) dialog.showModal();
   dialog.scrollTop = 0; dialog.setAttribute('aria-busy', String(busy));
   document.querySelector<HTMLElement>('#dialog-title')!.focus({ preventScroll: true });
@@ -323,18 +324,22 @@ async function restoreReview(op:Json) {
 // The website requests approved without a recovery key, by their kind: the saved operation's name and the review's title.
 const INSTANCE_ACTION_NAMES: Record<string,string> = { reinstall_instance:'Reinstall', rescue_instance:'Rescue boot', reset_instance_access:'SSH access reset' };
 const INSTANCE_ACTION_TITLES: Record<string,string> = { reinstall_instance:'Approve reinstall', rescue_instance:'Approve rescue boot', reset_instance_access:'Approve SSH access reset' };
-// Ghost's approval screen of a reinstall, rescue boot or SSH access reset: its rows (a row Ghost
-// continues on further lines, such as each pasted SSH key, as one fact of several lines), then what
-// approving does and Ghost's notice. Nothing here is computed: Ghost reads and words it all.
+// A saved instance action review of a request that expired unsent: Ghost refuses to approve it.
+function instanceActionExpired(op:Json) { return op.kind === 'instance_action' && op.state === 'prepared' && Date.parse(op.review?.expires_at) <= Date.now(); }
+// Ghost's approval screen of a reinstall, rescue boot or SSH access reset: the instance by its ID,
+// Ghost's rows (a row Ghost continues on further lines, such as each pasted SSH key, as one fact of
+// several lines), then what approving does and Ghost's notice. Nothing here is computed: Ghost reads
+// and words it all. An expired or approved request is shown without Approve.
 function instanceActionReview(op:Json) {
   const r = op.review, reinstall = r.kind === 'reinstall_instance';
+  const open = !['authorized','expired','discarded'].includes(op.state) && !instanceActionExpired(op);
   const groups: {label:string, lines:string[]}[] = [];
   for (const row of r.review) { if (row.label || !groups.length) groups.push({label:row.label,lines:[row.value]}); else groups[groups.length-1].lines.push(row.value); }
   const code = (label:string) => ['SSH keys','Cloud-init','First-boot command'].includes(label);
   const facts = groups.map(group=>`<div class="fact"><dt>${e(group.label)}</dt><dd class="fact-lines${code(group.label) ? ' code' : ''}">${group.lines.map(line=>`<span>${e(line)}</span>`).join('')}</dd></div>`).join('');
   const said = [...(r.review_effects || []), r.notice].filter(Boolean);
-  const title = (INSTANCE_ACTION_TITLES[r.kind] || 'Approve') + (r.instance_name ? ': ' + r.instance_name : '');
-  modal(title, `<dl class="facts-list">${facts}</dl><div class="notice-local${reinstall ? ' warning' : ''}">${said.map((text:string)=>`<p>${e(text)}</p>`).join('')}</div>`, `<button class="btn btn--primary${reinstall ? ' btn--danger' : ''}" data-approve-instance-action="${e(op.id)}">Approve</button>`, '', 'Cancel');
+  const title = INSTANCE_ACTION_TITLES[r.kind] || 'Approve';
+  modal(r.instance_name ? title + ':' : title, `<dl class="facts-list">${fact('Instance ID',r.instance_id,true)}${facts}</dl><div class="notice-local${reinstall ? ' warning' : ''}">${said.map((text:string)=>`<p>${e(text)}</p>`).join('')}</div>`, open ? `<button class="btn btn--primary${reinstall ? ' btn--danger' : ''}" data-approve-instance-action="${e(op.id)}">Approve</button>` : '', '', open ? 'Cancel' : 'Close', r.instance_name || '');
 }
 // A website approval Ghost has read: a hosted restore, or an instance action.
 async function approvalReview(op:Json) { if (op.kind === 'instance_action') instanceActionReview(op); else await restoreReview(op); }
@@ -425,7 +430,15 @@ document.addEventListener('click',async(event)=>{
   if (target.dataset.reviewPayment) return paymentReview(op);
   if (target.dataset.reviewRestore) return restoreReview(op);
   if (target.dataset.reviewInstanceAction) return instanceActionReview(op);
-  if (target.dataset.approveInstanceAction) return operate(async()=>{ await call({action:'approve_instance_action',id}); dialog.close(); await refresh(); },'Approved.');
+  if (target.dataset.approveInstanceAction) return operate(async()=>{
+    try { await call({action:'approve_instance_action',id}); }
+    catch (error) {
+      // Changed, its saved review is the request as it is now; expired, it can no longer be approved.
+      if (['approval_changed','approval_expired'].includes((error as Json)?.code) && await refresh()) { const saved=snapshot.operations.find((o:Json)=>o.id === id); if (saved) instanceActionReview(saved); }
+      throw error;
+    }
+    dialog.close(); await refresh();
+  },'Approved.');
   if (target.dataset.rotation) { if(['prepared','uncertain','submitting'].includes(op.state)) rotationReview(op); else await operate(async()=>{ await call({action:'reconcile_rotation',id}); await refresh(); },'Rotation confirmed. Replacement key selected.'); return; }
   if (target.dataset.broadcast) return operate(async()=>{
     const r=await call({action:'broadcast',id});

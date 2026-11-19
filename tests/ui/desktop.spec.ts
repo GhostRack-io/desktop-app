@@ -234,29 +234,68 @@ test('restore over an older instance names the backup kept first and keeps a des
 });
 test('instance actions are reviewed as Ghost shows them and approved without an account key',async({page})=>{
   await page.getByRole('link',{name:'Account'}).click();
-  for (const [reference,title] of [['c0000000-0000-4000-8000-000000002962','Approve rescue boot: web-production-frontend'],['c0000000-0000-4000-8000-000000002963','Approve SSH access reset: web-production-frontend'],['c0000000-0000-4000-8000-000000002961','Approve reinstall: web-production-frontend']]) {
+  for (const [reference,title,notice] of [['c0000000-0000-4000-8000-000000002962','Approve rescue boot: web-production-frontend','Approving boots the instance into rescue as shown above.'],['c0000000-0000-4000-8000-000000002963','Approve SSH access reset: web-production-frontend','Approving resets the instance\'s SSH access as shown above.'],['c0000000-0000-4000-8000-000000002961','Approve reinstall: web-production-frontend','Approving reinstalls the instance as shown above.']]) {
     await page.getByLabel('Approval link or request ID').fill(reference);
     await page.getByRole('button',{name:'Review request'}).click();
     const dialog=page.getByRole('dialog');
     await expect(dialog.getByRole('heading',{name:title,exact:true})).toBeVisible();
+    // The instance by its ID, then Ghost's rows.
+    expect((await dialog.locator('.fact dt').allTextContents()).slice(0,2)).toEqual(['Instance ID','Instance']);
+    await expect(dialog.locator('.fact',{has:page.getByText('Instance ID',{exact:true})}).locator('dd')).toHaveText('0d3f5a52-7c1e-4b8e-9a51-2c4b6f0e9d13');
     // Each pasted key on its own line, in full, after the saved keys.
     const keys=dialog.locator('.fact',{has:page.getByText('SSH keys',{exact:true})}).locator('dd span');
     await expect(keys).toHaveText(['work laptop, build server',/^ssh-ed25519 SHA256:ZkAsl.* \(added from the website for the migration weekend\)$/,'ecdsa-sha2-nistp256 SHA256:Gb0oX0dYJ7Uo4n7cCPNkSPyc8fvxmCLDqVhBV1n0f8Y ci']);
-    await expect(dialog.getByText('Inspect the request before approving.',{exact:false})).toBeVisible();
+    // Ghost's notice below what approving does, said once.
+    await expect(dialog.locator('.notice-local p').last()).toHaveText(notice);
     expect(await dialog.locator('.modal-actions button').allTextContents()).toEqual(['Cancel','Approve']);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#dialog .fact dd')].every(dd=>dd.scrollWidth <= dd.clientWidth))).toBe(true);
     if (title.includes('reinstall')) break;
     await page.getByRole('button',{name:'Cancel',exact:true}).click();
   }
   const dialog=page.getByRole('dialog');
-  await expect(dialog.getByText('Keeps a backup first: up to $1.50, locked until 2026-11-27.',{exact:true})).toBeVisible();
+  expect(await dialog.locator('.notice-local p').allTextContents()).toEqual(['Reinstall destroys the current root filesystem and starts the instance if it is stopped.','Keeps a backup first: up to $1.50, locked until 2026-11-27.','Approving reinstalls the instance as shown above.']);
   await expect(dialog.getByText('1.2 KiB, SHA-256 353576b3b36a47200c32dddbd3505f74af8929d00975ef558dad6e492bf55fd5',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Approve',exact:true})).toHaveClass(/btn--danger/);
   await page.screenshot({animations:'disabled',path:'test-results/instance-action-review.png'});
   await page.getByRole('button',{name:'Approve',exact:true}).click();
   await expect(page.getByRole('status')).toContainText('Approved.');
   const approvals=await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action.startsWith('approve_')));
-  expect(approvals).toEqual([{action:'approve_instance_action',id:'instance-action-test'}]);
+  expect(approvals).toEqual([{action:'approve_instance_action',id:'instance-action-1'}]);
+});
+test('a request that changed since its review is shown again as it is now, and approved from there',async({page})=>{
+  await page.getByRole('link',{name:'Account'}).click();
+  await page.getByLabel('Approval link or request ID').fill('c0000000-0000-4000-8000-000000002961');
+  await page.getByRole('button',{name:'Review request'}).click();
+  // Reviewed again: one saved review per request.
+  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.getByLabel('Approval link or request ID').fill('c0000000-0000-4000-8000-000000002961');
+  await page.getByRole('button',{name:'Review request'}).click();
+  await expect(page.locator('[data-review-instance-action]')).toHaveCount(1);
+  const dialog=page.getByRole('dialog');
+  await page.evaluate(()=>(window as any).changeApproval=true);
+  await page.getByRole('button',{name:'Approve',exact:true}).click();
+  await expect(dialog.getByRole('alert')).toHaveText('The request changed. Review it again.');
+  await expect(dialog.getByText('Keeps a backup first: up to $1.50, locked until 2026-11-28.',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('locked until 2026-11-27',{exact:false})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Approve',exact:true})).toBeEnabled();
+  await page.getByRole('button',{name:'Approve',exact:true}).scrollIntoViewIfNeeded();
+  await page.screenshot({animations:'disabled',path:'test-results/instance-action-changed.png'});
+  // The saved operation's Review shows the request as it is now too.
+  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.locator('[data-review-instance-action]').click();
+  await expect(dialog.getByText('Keeps a backup first: up to $1.50, locked until 2026-11-28.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Approve',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Approved.');
+  expect(await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'approve_instance_action').length)).toBe(2);
+});
+test('an instance action review whose request expired is shown as expired, without Approve',async({page})=>{
+  const state=structuredClone(fixture);
+  (state.operations as any[]).push({id:'instance-action-expired',kind:'instance_action',state:'prepared',created_at:1700000000,ghost_seed_file:state.ghost_seed_file,api_url:state.settings.api_url,intent_id:'c0000000-0000-4000-8000-000000002969',review:{intent_id:'c0000000-0000-4000-8000-000000002969',kind:'rescue_instance',instance_id:'0d3f5a52-7c1e-4b8e-9a51-2c4b6f0e9d13',instance_name:'web',review:[{label:'Instance',value:'running, 4 vCPU, 8 GiB RAM, 80 GiB disk, Singapore'}],review_effects:[],notice:'Approving boots the instance into rescue as shown above.',expires_at:'2026-01-01T00:00:00Z',operation_sha256:'a'.repeat(64)}});
+  await openDesktop(page,state);
+  await page.getByRole('link',{name:'Account'}).click();
+  const row=page.locator('article.operation',{hasText:'Rescue boot'});
+  await expect(row.locator('.badge')).toHaveText('Expired');
+  await expect(row.getByRole('button')).toHaveCount(0);
 });
 test('rotation offers a default replacement location and a separate confirmation',async({page})=>{
   await page.getByRole('link',{name:'Account'}).click();

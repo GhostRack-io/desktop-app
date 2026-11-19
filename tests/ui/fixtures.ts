@@ -63,16 +63,28 @@ export async function openDesktop(page: Page, state = structuredClone(fixture)) 
       }
       if(request.action === 'discard_payment') { (fixture.operations[0] as any).state='discarded'; return {}; }
       // A reinstall, rescue boot or SSH access reset (item 296b), as Ghost's screen shows it: reference
-      // c…296 + 1, 2 or 3 picks the kind.
-      const instanceKinds:Record<string,string>={'c0000000-0000-4000-8000-000000002961':'reinstall_instance','c0000000-0000-4000-8000-000000002962':'rescue_instance','c0000000-0000-4000-8000-000000002963':'reset_instance_access'};
+      // c…296 + 1, 2 or 3 picks the kind, 4 a reinstall of an instance with a long name. Set
+      // window.changeApproval to answer the next approval as Ghost does a request that changed.
+      const instanceKinds:Record<string,string>={'c0000000-0000-4000-8000-000000002961':'reinstall_instance','c0000000-0000-4000-8000-000000002962':'rescue_instance','c0000000-0000-4000-8000-000000002963':'reset_instance_access','c0000000-0000-4000-8000-000000002964':'reinstall_instance'};
       if(request.action === 'inspect_restore' && instanceKinds[request.reference]) {
         const kind=instanceKinds[request.reference], reinstall=kind === 'reinstall_instance';
         const keys=[{label:'SSH keys',value:'work laptop, build server'},{label:'',value:'ssh-ed25519 SHA256:ZkAslGjFiUHdGf/WUL8rQvkib4PTvQatUV0OUQSncCA renter@a-very-long-workstation-name.internal.example.org (added from the website for the migration weekend)'},{label:'',value:'ecdsa-sha2-nistp256 SHA256:Gb0oX0dYJ7Uo4n7cCPNkSPyc8fvxmCLDqVhBV1n0f8Y ci'}];
         const review=[{label:'Instance',value:'running, 4 vCPU, 8 GiB RAM, 80 GiB disk, Singapore'},...(reinstall ? [{label:'Image',value:'Ubuntu 24.04 LTS  →  Debian 13'},{label:'Hostname',value:'web-2'}] : []),...keys,...(reinstall ? [{label:'Cloud-init',value:'1.2 KiB, SHA-256 353576b3b36a47200c32dddbd3505f74af8929d00975ef558dad6e492bf55fd5'},{label:'First-boot command',value:'not set'}] : []),...(kind === 'reset_instance_access' ? [{label:'Firewall',value:'stopped for that boot only'}] : [])];
-        const op={id:'instance-action-test',kind:'instance_action',state:'prepared',created_at:1700000000,ghost_seed_file:fixture.ghost_seed_file,api_url:fixture.settings.api_url,intent_id:request.reference,review:{intent_id:request.reference,kind,instance_id:'instance-id',review,review_effects:reinstall ? ['Reinstall destroys the current root filesystem and starts the instance if it is stopped.','Keeps a backup first: up to $1.50, locked until 2026-11-27.'] : [],instance_name:'web-production-frontend',notice:reinstall ? 'Approving reinstalls the instance, which destroys its root filesystem, and may keep a backup of an older instance first, which is charged. Inspect the request before approving.' : 'Approving boots the instance into the rescue system, where root logs in with the request\'s SSH keys. Inspect the request before approving.',expires_at:'2099-01-01T00:00:00Z',request:{operation:{kind,instance_id:'instance-id'}}}};
-        (fixture.operations as any[]).push(op); return op;
+        const notice=({reinstall_instance:'Approving reinstalls the instance as shown above.',rescue_instance:'Approving boots the instance into rescue as shown above.',reset_instance_access:'Approving resets the instance\'s SSH access as shown above.'} as Record<string,string>)[kind];
+        const name=request.reference.endsWith('4') ? 'customer-portal-production-frontend-blue-green-canary-europe-west-and-singapore' : 'web-production-frontend';
+        const op={id:'instance-action-'+request.reference.slice(-1),kind:'instance_action',state:'prepared',created_at:1700000000,ghost_seed_file:fixture.ghost_seed_file,api_url:fixture.settings.api_url,intent_id:request.reference,review:{intent_id:request.reference,kind,instance_id:'0d3f5a52-7c1e-4b8e-9a51-2c4b6f0e9d13',instance_name:name,review,review_effects:reinstall ? ['Reinstall destroys the current root filesystem and starts the instance if it is stopped.','Keeps a backup first: up to $1.50, locked until 2026-11-27.'] : [],notice,expires_at:'2099-01-01T00:00:00Z',operation_sha256:'5d1c0e1f4b8a7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d'}};
+        // One saved review per request.
+        (fixture as any).operations=[...(fixture.operations as any[]).filter(saved=>saved.id !== op.id),op]; return op;
       }
-      if(request.action === 'approve_instance_action') { (fixture.operations as any[]).find(op=>op.id === request.id).state='authorized'; return {job_id:'job-id'}; }
+      if(request.action === 'approve_instance_action') {
+        const op=(fixture.operations as any[]).find(op=>op.id === request.id);
+        if((window as any).changeApproval) {
+          (window as any).changeApproval=false;
+          op.review={...op.review,review_effects:[op.review.review_effects[0],'Keeps a backup first: up to $1.50, locked until 2026-11-28.']};
+          throw {code:'approval_changed',message:'The request changed. Review it again.'};
+        }
+        op.state='authorized'; return {job_id:'job-id'};
+      }
       if(request.action === 'inspect_restore') {
         const op={id:'restore-local-test',kind:'restore',state:'prepared',created_at:1700000000,review:{request:{operation:{kind:'restore_backup',instance_id:'destination-id'},expires_at:'2099-01-01T00:00:00Z'},backup:{backup_id:'backup-id',instance_id:'source-id',recipient_key_fingerprint:'public-fingerprint'},destination:{hostname:'staging-target'},account:{account_alias:'gh-test-account'},matching_recovery_files:['/tmp/older-recovery.seed'],restore_charge_microusd:'1954',charge_already_committed:false}};
         // An older instance whose deletion waits (item 267).
