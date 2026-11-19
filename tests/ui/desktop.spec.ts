@@ -232,6 +232,32 @@ test('restore over an older instance names the backup kept first and keeps a des
   await expect(page.getByRole('status')).toContainText('Restore authorized');
   expect(await page.evaluate(()=>(window as any).calls.find((r:any)=>r.action === 'approve_restore').id)).toBe('restore-kept-test');
 });
+test('instance actions are reviewed as Ghost shows them and approved without an account key',async({page})=>{
+  await page.getByRole('link',{name:'Account'}).click();
+  for (const [reference,title] of [['c0000000-0000-4000-8000-000000002962','Approve rescue boot: web-production-frontend'],['c0000000-0000-4000-8000-000000002963','Approve SSH access reset: web-production-frontend'],['c0000000-0000-4000-8000-000000002961','Approve reinstall: web-production-frontend']]) {
+    await page.getByLabel('Approval link or request ID').fill(reference);
+    await page.getByRole('button',{name:'Review request'}).click();
+    const dialog=page.getByRole('dialog');
+    await expect(dialog.getByRole('heading',{name:title,exact:true})).toBeVisible();
+    // Each pasted key on its own line, in full, after the saved keys.
+    const keys=dialog.locator('.fact',{has:page.getByText('SSH keys',{exact:true})}).locator('dd span');
+    await expect(keys).toHaveText(['work laptop, build server',/^ssh-ed25519 SHA256:ZkAsl.* \(added from the website for the migration weekend\)$/,'ecdsa-sha2-nistp256 SHA256:Gb0oX0dYJ7Uo4n7cCPNkSPyc8fvxmCLDqVhBV1n0f8Y ci']);
+    await expect(dialog.getByText('Inspect the request before approving.',{exact:false})).toBeVisible();
+    expect(await dialog.locator('.modal-actions button').allTextContents()).toEqual(['Cancel','Approve']);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#dialog .fact dd')].every(dd=>dd.scrollWidth <= dd.clientWidth))).toBe(true);
+    if (title.includes('reinstall')) break;
+    await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  }
+  const dialog=page.getByRole('dialog');
+  await expect(dialog.getByText('Keeps a backup first: up to $1.50, locked until 2026-11-27.',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('1.2 KiB, SHA-256 353576b3b36a47200c32dddbd3505f74af8929d00975ef558dad6e492bf55fd5',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Approve',exact:true})).toHaveClass(/btn--danger/);
+  await page.screenshot({animations:'disabled',path:'test-results/instance-action-review.png'});
+  await page.getByRole('button',{name:'Approve',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Approved.');
+  const approvals=await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action.startsWith('approve_')));
+  expect(approvals).toEqual([{action:'approve_instance_action',id:'instance-action-test'}]);
+});
 test('rotation offers a default replacement location and a separate confirmation',async({page})=>{
   await page.getByRole('link',{name:'Account'}).click();
   await page.getByRole('button',{name:'Rotate account keys',exact:true}).click();

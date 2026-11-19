@@ -62,6 +62,17 @@ export async function openDesktop(page: Page, state = structuredClone(fixture)) 
         return {status:op.state,confirmations:op.confirmations ?? 0};
       }
       if(request.action === 'discard_payment') { (fixture.operations[0] as any).state='discarded'; return {}; }
+      // A reinstall, rescue boot or SSH access reset (item 296b), as Ghost's screen shows it: reference
+      // c…296 + 1, 2 or 3 picks the kind.
+      const instanceKinds:Record<string,string>={'c0000000-0000-4000-8000-000000002961':'reinstall_instance','c0000000-0000-4000-8000-000000002962':'rescue_instance','c0000000-0000-4000-8000-000000002963':'reset_instance_access'};
+      if(request.action === 'inspect_restore' && instanceKinds[request.reference]) {
+        const kind=instanceKinds[request.reference], reinstall=kind === 'reinstall_instance';
+        const keys=[{label:'SSH keys',value:'work laptop, build server'},{label:'',value:'ssh-ed25519 SHA256:ZkAslGjFiUHdGf/WUL8rQvkib4PTvQatUV0OUQSncCA renter@a-very-long-workstation-name.internal.example.org (added from the website for the migration weekend)'},{label:'',value:'ecdsa-sha2-nistp256 SHA256:Gb0oX0dYJ7Uo4n7cCPNkSPyc8fvxmCLDqVhBV1n0f8Y ci'}];
+        const review=[{label:'Instance',value:'running, 4 vCPU, 8 GiB RAM, 80 GiB disk, Singapore'},...(reinstall ? [{label:'Image',value:'Ubuntu 24.04 LTS  →  Debian 13'},{label:'Hostname',value:'web-2'}] : []),...keys,...(reinstall ? [{label:'Cloud-init',value:'1.2 KiB, SHA-256 353576b3b36a47200c32dddbd3505f74af8929d00975ef558dad6e492bf55fd5'},{label:'First-boot command',value:'not set'}] : []),...(kind === 'reset_instance_access' ? [{label:'Firewall',value:'stopped for that boot only'}] : [])];
+        const op={id:'instance-action-test',kind:'instance_action',state:'prepared',created_at:1700000000,ghost_seed_file:fixture.ghost_seed_file,api_url:fixture.settings.api_url,intent_id:request.reference,review:{intent_id:request.reference,kind,instance_id:'instance-id',review,review_effects:reinstall ? ['Reinstall destroys the current root filesystem and starts the instance if it is stopped.','Keeps a backup first: up to $1.50, locked until 2026-11-27.'] : [],instance_name:'web-production-frontend',notice:reinstall ? 'Approving reinstalls the instance, which destroys its root filesystem, and may keep a backup of an older instance first, which is charged. Inspect the request before approving.' : 'Approving boots the instance into the rescue system, where root logs in with the request\'s SSH keys. Inspect the request before approving.',expires_at:'2099-01-01T00:00:00Z',request:{operation:{kind,instance_id:'instance-id'}}}};
+        (fixture.operations as any[]).push(op); return op;
+      }
+      if(request.action === 'approve_instance_action') { (fixture.operations as any[]).find(op=>op.id === request.id).state='authorized'; return {job_id:'job-id'}; }
       if(request.action === 'inspect_restore') {
         const op={id:'restore-local-test',kind:'restore',state:'prepared',created_at:1700000000,review:{request:{operation:{kind:'restore_backup',instance_id:'destination-id'},expires_at:'2099-01-01T00:00:00Z'},backup:{backup_id:'backup-id',instance_id:'source-id',recipient_key_fingerprint:'public-fingerprint'},destination:{hostname:'staging-target'},account:{account_alias:'gh-test-account'},matching_recovery_files:['/tmp/older-recovery.seed'],restore_charge_microusd:'1954',charge_already_committed:false}};
         // An older instance whose deletion waits (item 267).

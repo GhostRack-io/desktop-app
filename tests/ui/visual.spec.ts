@@ -47,6 +47,31 @@ test('review small-window payment and restore dialogs',async({page})=>{
   await page.screenshot({animations:'disabled',path:`${shots}/restore-800.png`});
 });
 
+test('review the instance action dialog at small and wide windows in both themes',async({page})=>{
+  await mkdir(shots,{recursive:true});
+  for (const theme of ['light','dark']) {
+    const state=structuredClone(fixture); state.settings.theme=theme;
+    await openDesktop(page,state);
+    for (const width of [760,1180]) {
+      await page.setViewportSize({width,height:width<1000 ? 600 : 820});
+      await page.goto('/#account');
+      await page.getByLabel('Approval link or request ID').fill('c0000000-0000-4000-8000-000000002961');
+      await page.getByRole('button',{name:'Review request'}).click();
+      await page.getByRole('button',{name:'Approve',exact:true}).scrollIntoViewIfNeeded();
+      await expect(page.getByRole('button',{name:'Approve',exact:true})).toBeInViewport();
+      const sizes=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,dialog:[...document.querySelectorAll('#dialog .fact dd, #dialog .modal-body')].every(node=>node.scrollWidth <= node.clientWidth)}));
+      expect(sizes.scroll).toBeLessThanOrEqual(width);
+      expect(sizes.dialog).toBe(true);
+      const buttons=await page.locator('#dialog .modal-actions button').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));
+      expect(Math.abs(buttons[0]-buttons[1])).toBeLessThan(1);
+      await page.screenshot({animations:'disabled',path:`${shots}/instance-action-${theme}-${width}-end.png`});
+      await page.locator('#dialog-title').scrollIntoViewIfNeeded();
+      await page.screenshot({animations:'disabled',path:`${shots}/instance-action-${theme}-${width}.png`});
+      await page.getByRole('button',{name:'Cancel',exact:true}).click();
+    }
+  }
+});
+
 test('app bar and page headings stay fixed when views change or scroll',async({page})=>{
   await page.setViewportSize({width:1600,height:1000});
   await openDesktop(page);

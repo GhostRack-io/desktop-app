@@ -104,6 +104,7 @@ details.section:not([open])>summary { border-block-end:0; }
 .fact dt { color:var(--color-text-muted); font-size:var(--text-label); font-weight:var(--weight-medium); }
 .fact dd { min-width:0; font-variant-numeric:tabular-nums; }
 .fact .code { font-size:var(--text-xs); overflow-wrap:anywhere; }
+.fact-lines { display:grid; gap:var(--space-1); align-content:start; }
 .toolbar-row { display:flex; gap:var(--space-2); flex-wrap:wrap; align-items:center; min-width:0; }
 .toolbar-row .note { margin-left:auto; }
 .tabs-local { display:flex; gap:0; border-bottom:var(--border) solid var(--color-border); }
