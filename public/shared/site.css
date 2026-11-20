@@ -799,9 +799,6 @@ main:focus{outline:none}
 
 .data-table .av-cell{inline-size:1%;padding-inline-end:0;white-space:nowrap}
 .data-table .av-cell>span{display:flex}
-.data-table .av-cell .av{margin-inline-end:var(--space-2)}
-.data-table :is(th,td).av-cell:first-child{padding-inline-start:var(--space-2)}
-.data-table .av-cell+th{padding-inline-start:0}
 .data-table td.av-cell{order:0;flex:none;align-self:center}
 .data-table td.av-cell::before{content:none}
 
@@ -1181,7 +1178,6 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .data-table td.av-cell{flex:1 1 0;inline-size:auto;max-inline-size:max-content}
 .data-table td.av-cell .av{min-inline-size:2rem;max-inline-size:calc(100% - var(--space-2))}
 .data-table td.av-cell+th{min-inline-size:min(100%,6rem)}
-.data-table :is(th,td).av-cell:first-child{padding-inline-start:0}
 }
 
 @media (min-width:40em){@media not all and (min-width:48em){
@@ -1204,7 +1200,6 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .data-table--many td.av-cell{flex:1 1 0;inline-size:auto;max-inline-size:max-content}
 .data-table--many td.av-cell .av{min-inline-size:2rem;max-inline-size:calc(100% - var(--space-2))}
 .data-table--many td.av-cell+th{min-inline-size:min(100%,6rem)}
-.data-table--many :is(th,td).av-cell:first-child{padding-inline-start:0}
 .data-table--many .num .cell-note{margin-inline-start:0}
 .data-table--many .act .toolbar{justify-content:flex-start}
 }}
@@ -1229,7 +1224,6 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .data-table--most td.av-cell{flex:1 1 0;inline-size:auto;max-inline-size:max-content}
 .data-table--most td.av-cell .av{min-inline-size:2rem;max-inline-size:calc(100% - var(--space-2))}
 .data-table--most td.av-cell+th{min-inline-size:min(100%,6rem)}
-.data-table--most :is(th,td).av-cell:first-child{padding-inline-start:0}
 .data-table--most .num .cell-note{margin-inline-start:0}
 .data-table--most .act .toolbar{justify-content:flex-start}
 }}
@@ -1731,8 +1725,6 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 .offer-list--table #offerings :is(.cpu,.loc,.rel){--cell-wrap:normal;overflow-wrap:anywhere}
 .offer-list--table #offerings tbody td.av-cell{display:table-cell}
 .offer-list--table #offerings .av-cell{--cell-end:0}
-.offer-list--table #offerings .av-cell:first-child{--cell-start:var(--space-2)}
-.offer-list--table #offerings .av-cell+th{--cell-start:0}
 .offer-list--table #offerings .av-band{display:none}
 .offer-list--table #offerings thead th{color:var(--color-text-muted)}
 .offer-list--table>.table-wrap #offerings thead tr>:first-child{border-start-start-radius:calc(var(--radius) - var(--border))}
