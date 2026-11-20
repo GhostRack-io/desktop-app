@@ -1561,6 +1561,9 @@ form[data-action="offering.rent"]{display:flex}
 .offering-side{gap:var(--space-5)}
 .offering-hosts{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4)}
 
+@media (min-width:30em){.network-line{display:grid;grid-template-columns:7.5rem 5.5rem minmax(0,1fr);align-items:baseline;column-gap:var(--space-2)}}
+.network-line__relation{color:var(--color-text-secondary)}
+
 .offering-inventory{margin-inline:calc(var(--inset,0rem) * -1);padding:var(--space-3) var(--inset,0rem) 0;border-block-start:var(--border) solid var(--color-divider)}
 .offering-inventory>summary{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--color-link);font-size:var(--text-sm);text-decoration:underline var(--color-border-strong);text-decoration-thickness:var(--border);text-underline-offset:.2em;cursor:pointer;list-style:none}
 .offering-inventory>summary::-webkit-details-marker{display:none}
