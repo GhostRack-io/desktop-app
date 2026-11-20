@@ -517,6 +517,8 @@ main:focus{outline:none}
 .btn--lg{min-block-size:var(--control-height-lg);padding-inline:1.25rem;font-size:1rem}
 .btn--quiet.btn--small{--pad:.5rem;padding-inline:var(--pad)}
 
+.btn--icon{--pad:0;inline-size:1.75rem;min-block-size:1.75rem;padding:0;justify-content:center;color:var(--color-text-muted)}
+
 .backup-actions{flex-wrap:nowrap;gap:var(--space-2)}
 .btn:disabled:not([aria-busy]){border-color:var(--color-border);background:var(--color-transparent);color:var(--color-text-muted);cursor:not-allowed;box-shadow:none}
 .btn--quiet:disabled:not([aria-busy]){border-color:var(--color-transparent);background:var(--color-transparent)}
