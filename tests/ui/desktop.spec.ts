@@ -358,6 +358,13 @@ test('with no saved key the section says so',async({page})=>{
   await expect(page.getByText('No key saved yet.')).toBeVisible();
   await expect(page.locator('.ssh-key-table')).toHaveCount(0);
 });
+test('a failed key list shows its error and leaves the rest of the account page',async({page})=>{
+  await openDesktop(page,{...structuredClone(fixture),ssh_keys:{data:null,error:{code:'failed',message:'Could not load SSH keys'}}} as any);
+  await page.getByRole('link',{name:'Account'}).click();
+  await expect(page.getByText('Could not load SSH keys')).toBeVisible();
+  await expect(page.locator('.ssh-key-table')).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'Website password'})).toBeVisible();
+});
 test('adding a key sends the label and line, clears the form and shows the new row',async({page})=>{
   await page.getByRole('link',{name:'Account'}).click();
   await page.getByLabel('Label',{exact:true}).fill('  Home desktop ');
