@@ -900,6 +900,8 @@ main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,di
 .data-table .num{text-align:end;white-space:nowrap}
 
 :where(.data-table) :is(td.act,td.entry,td.ctl){vertical-align:middle}
+
+:where(.data-table) :is(th,td).icons{inline-size:1%;white-space:nowrap}
 :where(.data-table) :is(td.act,td.entry){text-align:end}
 :where(.data-table) td.act{padding-block:.375rem}
 :where(.data-table) td.act .btn{min-block-size:var(--control-height-sm);padding-block:.25rem;font-size:.875rem}
