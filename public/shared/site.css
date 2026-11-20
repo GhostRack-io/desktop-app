@@ -1931,6 +1931,9 @@ form[data-action="offering.rent"]{display:flex}
 .trial-line{display:flex;align-items:center;gap:var(--space-2);inline-size:fit-content;max-inline-size:100%;padding:var(--space-2) var(--space-3);background:var(--color-accent-surface);border-radius:var(--radius);font-size:var(--text-sm)}
 .trial-line>.icon{flex:none}
 .trial-line strong{color:var(--color-accent-strong)}
+
+.github-link{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-3)}
+.github-link>.trial-line{min-block-size:var(--control-height)}
 .signup-ways{display:grid;gap:var(--space-3)}
 .signup-ways>.flow{max-inline-size:none}
 .signup-ways__or{display:flex;align-items:center;gap:var(--space-3);color:var(--color-text-muted);font-size:var(--text-sm)}
