@@ -16,12 +16,18 @@ let drawn = { key:'', height:0 };
 let pending = 0;
 let generation = 0;
 
-function length(value:string, of:number) { return value.endsWith('%') ? parseFloat(value) / 100 * of : parseFloat(value); }
+// "416px", "7%" or "calc(7% + 48.16px)", the form site.css's glows under the rails take.
+function length(value:string, of:number) {
+  const sum = value.match(/^calc\(([\d.]+)% ([+-]) ([\d.]+)px\)$/);
+  if (sum) return +sum[1] / 100 * of + (sum[2] === '-' ? -1 : 1) * +sum[3];
+  return value.endsWith('%') ? parseFloat(value) / 100 * of : parseFloat(value);
+}
 
-// "radial-gradient(928px 576px at 7% 416px, rgba(…), rgba(0, 0, 0, 0) 70%)", one per glow.
+// "radial-gradient(928px 576px at calc(7% + 48.16px) 416px, rgba(…), rgba(0, 0, 0, 0) 70%)",
+// one per glow.
 function glows(image:string, width:number): Glow[] | null {
   const found:Glow[] = [];
-  const pattern = /radial-gradient\(([\d.]+)px ([\d.]+)px at ([\d.]+(?:px|%)) ([\d.]+(?:px|%)), (rgba?\([^)]*\))(?: 0%)?, rgba\(0, 0, 0, 0\) ([\d.]+)%\)/g;
+  const pattern = /radial-gradient\(([\d.]+)px ([\d.]+)px at ([\d.]+(?:px|%)|calc\([\d.]+% [+-] [\d.]+px\)) ([\d.]+(?:px|%)), (rgba?\([^)]*\))(?: 0%)?, rgba\(0, 0, 0, 0\) ([\d.]+)%\)/g;
   for (const m of image.matchAll(pattern)) found.push({ rx:+m[1], ry:+m[2], x:length(m[3],width), y:parseFloat(m[4]), color:m[5], stop:+m[6]/100 });
   return found.length && found.length === (image.match(/radial-gradient/g) ?? []).length ? found : null;
 }
