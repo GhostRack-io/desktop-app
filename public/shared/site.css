@@ -797,7 +797,7 @@ main:focus{outline:none}
 .av-pip{fill:var(--av-pip)}
 @media (forced-colors:active){.av{display:none}}
 
-.data-table .av-cell{inline-size:1%;padding-inline-end:0;white-space:nowrap}
+.data-table .av-cell{inline-size:1%;white-space:nowrap}
 .data-table .av-cell>span{display:flex}
 .data-table td.av-cell{order:0;flex:none;align-self:center}
 .data-table td.av-cell::before{content:none}
@@ -1724,7 +1724,6 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 .offer-list--table #offerings :is(th,td):last-child{--cell-end:var(--table-inset)}
 .offer-list--table #offerings :is(.cpu,.loc,.rel){--cell-wrap:normal;overflow-wrap:anywhere}
 .offer-list--table #offerings tbody td.av-cell{display:table-cell}
-.offer-list--table #offerings .av-cell{--cell-end:0}
 .offer-list--table #offerings .av-band{display:none}
 .offer-list--table #offerings thead th{color:var(--color-text-muted)}
 .offer-list--table>.table-wrap #offerings thead tr>:first-child{border-start-start-radius:calc(var(--radius) - var(--border))}
