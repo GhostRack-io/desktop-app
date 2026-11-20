@@ -264,8 +264,11 @@ pub fn public_key_line(text: &str) -> Result<String> {
     Ok(line.to_owned())
 }
 /// `ghost`'s arguments for saving a public SSH key, built here from the
-/// trimmed label and key line. `--label` and `--key` take the next
-/// argument, so a value starting with a hyphen is never read as a flag.
+/// trimmed label and key line. The label goes in one argument,
+/// `--label=<label>`: ghost's `--label` does not accept a separate value
+/// that starts with a hyphen (`--label --yes` is a usage error), but its
+/// `=` form takes any value. `--key` accepts a hyphen-leading value, and a
+/// checked key line starts with its type anyway.
 pub fn ssh_key_add_args(label: &str, public_key: &str) -> Result<Vec<String>> {
     let label = label.trim();
     if label.is_empty() || label.len() > SSH_LABEL_MAX_BYTES {
@@ -279,8 +282,7 @@ pub fn ssh_key_add_args(label: &str, public_key: &str) -> Result<Vec<String>> {
         "account".to_owned(),
         "ssh-keys".to_owned(),
         "add".to_owned(),
-        "--label".to_owned(),
-        label.to_owned(),
+        format!("--label={label}"),
         "--key".to_owned(),
         line,
     ])

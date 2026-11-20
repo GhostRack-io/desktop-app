@@ -208,12 +208,30 @@ fn ssh_key_commands_are_built_by_the_app_alone() {
     let key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample me@host";
     assert_eq!(
         ssh_key_add_args(" laptop ", &format!(" {key}\n")).unwrap(),
-        [
-            "account", "ssh-keys", "add", "--label", "laptop", "--key", key
-        ]
+        ["account", "ssh-keys", "add", "--label=laptop", "--key", key]
     );
-    // A value that looks like an option stays the value of its flag.
-    assert_eq!(ssh_key_add_args("--yes", key).unwrap()[4], "--yes");
+    // ghost's `--label` rejects a separate value that starts with a hyphen,
+    // so the label travels inside its own argument, whatever it looks like.
+    for label in [
+        "--yes",
+        "-laptop",
+        "-l",
+        "--",
+        "-",
+        "-h",
+        "--key",
+        "--label=x",
+    ] {
+        let args = ssh_key_add_args(label, key).unwrap();
+        assert_eq!(args[3], format!("--label={label}"), "{label}");
+        assert_eq!(args.len(), 6, "{label}");
+        // Besides that argument and `--key`, no argument starts with a hyphen.
+        for arg in &args[..3] {
+            assert!(!arg.starts_with('-'), "{label}: {arg}");
+        }
+        assert_eq!(args[4], "--key", "{label}");
+        assert_eq!(args[5], key, "{label}");
+    }
     assert!(ssh_key_add_args("", key).is_err());
     assert!(ssh_key_add_args("   ", key).is_err());
     assert!(ssh_key_add_args(&"a".repeat(100), key).is_ok());
