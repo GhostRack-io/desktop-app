@@ -1071,14 +1071,12 @@ main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,di
 .tile--action>.tile__action{grid-column:2;grid-row:2;align-self:center;justify-self:start;margin-block:-.375rem}
 @media not all and (min-width:40em){
 .tiles--compact{display:block}
-.tiles--compact .tile{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 var(--space-3);padding-block:var(--space-2)}
+.tiles--compact .tile{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--space-3);padding-block:var(--space-2)}
 .tiles--compact .tile::before{content:none}
 .tiles--compact .tile__value{font-size:var(--text-lg)}
 .tiles--compact .tile__note{flex-basis:100%}
 
-.tiles--compact .tile--action{align-items:center}
-.tiles--compact .tile--action>.tile__action{order:1}
-.tiles--compact .tile--action>.tile__value{order:2;margin-inline-start:auto}
+.tiles--compact .tile__action{display:none}
 }
 
 .table-wrap{--table-inset:clamp(.5rem,.2rem + .6vw,.75rem);position:relative;overflow-x:auto;overflow-y:hidden}
@@ -1414,6 +1412,8 @@ dialog[open]{position:fixed}
 .balance-strip__note,.notice__meta{color:var(--color-text-muted);font-size:var(--text-sm)}
 
 .balance-strip__note{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4)}
+
+@media (min-width:40em){:is(.balance-strip__add,.balance-strip__note--phone){display:none}}
 
 @media (min-width:40em){@media not all and (min-width:64em){.balance-strip .tiles>.tile:nth-child(n+5){grid-column:1 / -1}}}
 
