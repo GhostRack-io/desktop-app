@@ -309,6 +309,10 @@ pub fn read_public_key_file(file: &Path) -> Result<String> {
             "Choose a public key file (*.pub), not a private key.",
         )
     };
+    // A regular file only: a FIFO or device would block or never end.
+    if !fs::metadata(file).is_ok_and(|m| m.is_file()) {
+        return Err(refuse());
+    }
     let mut bytes = Vec::new();
     fs::File::open(file)
         .and_then(|f| {
