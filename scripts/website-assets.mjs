@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const snapshot = path.join(root, 'public/shared');
-export const urls = css => [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/url\(\s*(["']?)([^"')]*?)\1\s*\)/g)].map(match => match[2]);
+// The files a stylesheet names; url(#id) points at an element of the page (an SVG gradient), not a file.
+export const urls = css => [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/url\(\s*(["']?)([^"')]*?)\1\s*\)/g)].map(match => match[2]).filter(name => !name.startsWith('#'));
 
 export function appIconSvg(mark, light) {
   const paths = [...mark.matchAll(/<path\b[^>]*\/>/g)].map(match => match[0]);

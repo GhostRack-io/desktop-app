@@ -26,6 +26,7 @@ test('the stylesheet resolves every asset, and the fonts\' licences', async () =
   for (const name of named) assert.ok(files.includes(name), `site.css names ${name}, which the app does not get`);
   for (const licence of ['instrument-sans-ofl.txt', 'geist-mono-ofl.txt']) assert.ok(files.includes(licence), licence);
   assert.deepEqual(urls('/* a url() in a comment */ a{src:url("a.woff2"),url(\'b.svg\'),url( c.png )}'), ['a.woff2', 'b.svg', 'c.png']);
+  assert.deepEqual(urls('.a{fill:url(#grad)}.b{background:url(d.svg)}'), ['d.svg']);
 });
 
 test('light and dark artwork is copied without changing its bytes', async () => {
