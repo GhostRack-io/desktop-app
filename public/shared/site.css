@@ -756,6 +756,10 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
 :is(.message,.agents-band,.platform-incident,.scan-state,.status-overall,.status-notice,.instance-frame__job){position:relative;border:var(--border) solid var(--color-glass-hairline);box-shadow:var(--glass-card-lift)}
 :is(.message,.agents-band,.platform-incident,.scan-state,.status-overall,.status-notice,.instance-frame__job)::after{content:"";position:absolute;inset:calc(var(--border) * -1);padding:var(--border-thick);background:var(--glass-rim);border-radius:inherit;-webkit-mask:linear-gradient(var(--color-text) 0 0) content-box,linear-gradient(var(--color-text) 0 0);-webkit-mask-composite:xor;mask:linear-gradient(var(--color-text) 0 0) content-box,linear-gradient(var(--color-text) 0 0);mask-composite:exclude;pointer-events:none}
+
+main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,dialog) .notice){position:relative;border:var(--border) solid var(--color-glass-hairline);box-shadow:var(--glass-card-lift)}
+main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,dialog) .notice)::after{content:"";position:absolute;inset:calc(var(--border) * -1);padding:var(--border-thick);background:var(--glass-rim);border-radius:inherit;-webkit-mask:linear-gradient(var(--color-text) 0 0) content-box,linear-gradient(var(--color-text) 0 0);-webkit-mask-composite:xor;mask:linear-gradient(var(--color-text) 0 0) content-box,linear-gradient(var(--color-text) 0 0);mask-composite:exclude;pointer-events:none}
+@media(forced-colors:active){main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,dialog) .notice){border-color:var(--sys-canvas-text)}main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,dialog) .notice)::after{display:none}}
 @media(forced-colors:active){:is(.message,.agents-band,.platform-incident,.scan-state,.status-overall,.status-notice,.instance-frame__job){border-color:var(--sys-canvas-text)}:is(.message,.agents-band,.platform-incident,.scan-state,.status-overall,.status-notice,.instance-frame__job)::after{display:none}}
 .notification__content{flex:1;min-inline-size:0;max-block-size:max(0rem,calc(100vh - 8rem));max-block-size:max(0rem,calc(100dvh - 8rem));overflow:auto;font-size:var(--text-sm)}
 .notification__label{display:block;color:var(--t);margin-block-end:var(--space-1);font-weight:var(--weight-bold)}
@@ -1610,6 +1614,8 @@ form[data-action="offering.rent"]{display:flex}
 .feature-grid{display:grid;gap:var(--space-5) var(--space-6)}
 @media (min-width:40em){.feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.feature-grid>li:last-child:nth-child(2n+1){grid-column:1 / -1}}
 @media (min-width:72em){.feature-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.feature-grid>li:last-child:nth-child(2n+1){grid-column:auto}.feature-grid>li:last-child:nth-child(3n+1){grid-column:1 / -1}}
+
+@media (min-width:72em){.feature-grid--pairs{grid-template-columns:repeat(2,minmax(0,1fr))}.feature-grid--pairs>li:last-child:nth-child(3n+1){grid-column:auto}}
 .feature-grid>li{display:grid;grid-template-columns:auto minmax(0,1fr);align-content:start;gap:var(--space-1) var(--space-3)}
 .feature-grid>li>.icon{grid-row:1 / span 2;box-sizing:content-box;inline-size:1.125rem;block-size:1.125rem;padding:.4375rem;border:var(--border) solid var(--color-glass-hairline);border-radius:var(--radius-sm);background:var(--color-surface-sunken);color:var(--color-text)}
 .feature-grid h3{font-size:var(--text-md);line-height:1.3}
