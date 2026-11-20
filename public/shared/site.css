@@ -810,7 +810,9 @@ main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,di
 .cpu-load:not([data-tone=busy]) .figure-number{font-weight:inherit}
 
 .state-icon{display:inline-flex;align-items:center;gap:.25em;color:var(--c,var(--color-text-muted));font-size:var(--text-lg)}
-.state-icon__job{color:var(--color-accent);font-size:.75em}
+
+.job-icon{display:inline-flex;margin-inline-start:var(--space-2);color:var(--color-accent);font-size:.875rem;vertical-align:middle}
+.job-icon[hidden]{display:none}
 .state-icon__still{display:none}
 @media (prefers-reduced-motion:no-preference){.state-icon__moving{animation:turn 1.6s linear infinite}}
 @media (prefers-reduced-motion:reduce){.state-icon__moving{display:none}.state-icon__still{display:inline}}
@@ -914,7 +916,7 @@ main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,di
 a+.badge--tag{margin-inline-start:var(--space-1)}
 
 .tag-list{display:inline-flex;flex-wrap:wrap;gap:var(--space-1);vertical-align:middle}
-a.name+.tag-list>.tag-chip:first-of-type{margin-inline-start:var(--space-2)}
+:is(a.name,.job-icon)+.tag-list>.tag-chip:first-of-type{margin-inline-start:var(--space-2)}
 a.tag-chip{font-weight:var(--weight-medium);text-decoration:none}
 a.tag-chip:hover{text-decoration:underline}
 ul.tag-list{margin:0;padding:0;list-style:none}
