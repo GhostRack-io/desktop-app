@@ -96,6 +96,19 @@ pub enum Request {
     },
     /// Turns website password login off (`ghost account remove-password`).
     RemoveWebsitePassword,
+    /// Saves a public SSH key on the account (`ghost account ssh-keys add`).
+    AddSshKey {
+        label: String,
+        public_key: String,
+    },
+    /// Removes a saved SSH key (`ghost account ssh-keys remove`).
+    RemoveSshKey {
+        ssh_key_id: String,
+    },
+    /// Reads one public key line from a chosen file, for the add form.
+    ReadPublicKeyFile {
+        file: PathBuf,
+    },
     InspectRestore {
         reference: String,
     },
@@ -221,6 +234,91 @@ pub fn set_password_args(expires_in_days: Option<u32>) -> Result<Vec<String>> {
         args.extend(["--expires-in".to_owned(), days.to_string()]);
     }
     Ok(args)
+}
+const SSH_LABEL_MAX_BYTES: usize = 100;
+const PUBLIC_KEY_FILE_MAX_BYTES: u64 = 16 * 1024;
+const SSH_KEY_TYPES: [&str; 7] = [
+    "ssh-ed25519",
+    "ssh-rsa",
+    "ecdsa-sha2-nistp256",
+    "ecdsa-sha2-nistp384",
+    "ecdsa-sha2-nistp521",
+    "sk-ssh-ed25519@openssh.com",
+    "sk-ecdsa-sha2-nistp256@openssh.com",
+];
+/// The text of one public key line: trimmed, on one line, no private key
+/// and one of the key types the website takes. Anything else is refused
+/// here, so a pasted private key never reaches a command line.
+pub fn public_key_line(text: &str) -> Result<String> {
+    let line = text.trim();
+    let typed = SSH_KEY_TYPES.iter().any(|t| {
+        line.strip_prefix(t)
+            .is_some_and(|rest| rest.starts_with(' '))
+    });
+    if line.contains(['\n', '\r']) || line.contains("PRIVATE KEY") || !typed {
+        return Err(Failure::new(
+            "invalid_ssh_key",
+            "Paste one public key line from a *.pub file.",
+        ));
+    }
+    Ok(line.to_owned())
+}
+/// `ghost`'s arguments for saving a public SSH key, built here from the
+/// trimmed label and key line. `--label` and `--key` take the next
+/// argument, so a value starting with a hyphen is never read as a flag.
+pub fn ssh_key_add_args(label: &str, public_key: &str) -> Result<Vec<String>> {
+    let label = label.trim();
+    if label.is_empty() || label.len() > SSH_LABEL_MAX_BYTES {
+        return Err(Failure::new(
+            "invalid_ssh_key",
+            "Give the key a label of up to 100 bytes.",
+        ));
+    }
+    let line = public_key_line(public_key)?;
+    Ok(vec![
+        "account".to_owned(),
+        "ssh-keys".to_owned(),
+        "add".to_owned(),
+        "--label".to_owned(),
+        label.to_owned(),
+        "--key".to_owned(),
+        line,
+    ])
+}
+/// `ghost`'s arguments for removing the saved SSH key `id`.
+pub fn ssh_key_remove_args(id: &str) -> Result<Vec<String>> {
+    let id = Uuid::parse_str(id.trim())
+        .map_err(|_| Failure::new("invalid_ssh_key", "Select a saved key."))?;
+    Ok(vec![
+        "account".to_owned(),
+        "ssh-keys".to_owned(),
+        "remove".to_owned(),
+        id.to_string(),
+    ])
+}
+/// The public key line in `file`: at most 16 KiB are read, and a file that
+/// is too large, unreadable or not one public key line is refused without
+/// returning any of its content.
+pub fn read_public_key_file(file: &Path) -> Result<String> {
+    use std::io::Read;
+    let refuse = || {
+        Failure::new(
+            "invalid_ssh_key",
+            "Choose a public key file (*.pub), not a private key.",
+        )
+    };
+    let mut bytes = Vec::new();
+    fs::File::open(file)
+        .and_then(|f| {
+            f.take(PUBLIC_KEY_FILE_MAX_BYTES + 1)
+                .read_to_end(&mut bytes)
+        })
+        .map_err(|_| refuse())?;
+    if bytes.len() as u64 > PUBLIC_KEY_FILE_MAX_BYTES {
+        return Err(refuse());
+    }
+    let text = String::from_utf8(bytes).map_err(|_| refuse())?;
+    public_key_line(&text).map_err(|_| refuse())
 }
 /// The arguments that ask for a GitHub sign-up claim and print it, without
 /// opening its link or waiting for the sign-in.
@@ -1109,6 +1207,17 @@ impl Controller {
                 )
                 .await
             }
+            Request::AddSshKey { label, public_key } => {
+                self.ghost(&s, ssh_key_add_args(&label, &public_key)?, None, None, false)
+                    .await
+            }
+            Request::RemoveSshKey { ssh_key_id } => {
+                self.ghost(&s, ssh_key_remove_args(&ssh_key_id)?, None, None, false)
+                    .await
+            }
+            Request::ReadPublicKeyFile { file } => {
+                Ok(json!({"public_key": read_public_key_file(&file)?}))
+            }
             Request::InspectRestore { reference } => self.inspect_restore(&s, &reference).await,
             Request::ApproveRestore {
                 id,
@@ -1574,85 +1683,95 @@ impl Controller {
                 "Create an account key or select an existing one.",
             )))
         };
-        let (account, balance, deposits, terms, provider, payouts, conversions) = if seed.exists() {
-            let (a, b, d, t, p, h, c) = tokio::join!(
-                self.ghost(&s, vec!["account".into(), "show".into()], None, None, false),
-                self.ghost(
-                    &s,
-                    vec!["account".into(), "balance".into()],
-                    None,
-                    None,
-                    false
-                ),
-                self.ghost(
-                    &s,
-                    vec!["account".into(), "deposits".into()],
-                    None,
-                    None,
-                    false
-                ),
-                self.ghost(
-                    &s,
-                    vec!["account".into(), "activation-terms".into()],
-                    None,
-                    None,
-                    false
-                ),
-                self.ghost(
-                    &s,
-                    vec!["provider".into(), "balance".into()],
-                    None,
-                    None,
-                    false
-                ),
-                self.ghost(
-                    &s,
-                    vec!["provider".into(), "payouts".into()],
-                    None,
-                    None,
-                    false
-                ),
-                self.ghost(
-                    &s,
-                    vec![
-                        "provider".into(),
-                        "conversions".into(),
-                        "--limit".into(),
-                        "20".into()
-                    ],
-                    None,
-                    None,
-                    false
+        let (account, balance, deposits, terms, provider, payouts, conversions, ssh_keys) =
+            if seed.exists() {
+                let (a, b, d, t, p, h, c, k) = tokio::join!(
+                    self.ghost(&s, vec!["account".into(), "show".into()], None, None, false),
+                    self.ghost(
+                        &s,
+                        vec!["account".into(), "balance".into()],
+                        None,
+                        None,
+                        false
+                    ),
+                    self.ghost(
+                        &s,
+                        vec!["account".into(), "deposits".into()],
+                        None,
+                        None,
+                        false
+                    ),
+                    self.ghost(
+                        &s,
+                        vec!["account".into(), "activation-terms".into()],
+                        None,
+                        None,
+                        false
+                    ),
+                    self.ghost(
+                        &s,
+                        vec!["provider".into(), "balance".into()],
+                        None,
+                        None,
+                        false
+                    ),
+                    self.ghost(
+                        &s,
+                        vec!["provider".into(), "payouts".into()],
+                        None,
+                        None,
+                        false
+                    ),
+                    self.ghost(
+                        &s,
+                        vec![
+                            "provider".into(),
+                            "conversions".into(),
+                            "--limit".into(),
+                            "20".into()
+                        ],
+                        None,
+                        None,
+                        false
+                    ),
+                    self.ghost(
+                        &s,
+                        vec!["account".into(), "ssh-keys".into(), "list".into()],
+                        None,
+                        None,
+                        false
+                    )
+                );
+                (
+                    Outcome::from(a),
+                    Outcome::from(b),
+                    Outcome::from(d),
+                    Outcome::from(t),
+                    Outcome::from(p),
+                    Outcome::from(h),
+                    Outcome::from(c.map(|page| page["items"].clone())),
+                    Outcome::from(k),
                 )
-            );
-            (
-                Outcome::from(a),
-                Outcome::from(b),
-                Outcome::from(d),
-                Outcome::from(t),
-                Outcome::from(p),
-                Outcome::from(h),
-                Outcome::from(c.map(|page| page["items"].clone())),
-            )
-        } else {
-            let missing = || {
-                Outcome::from(Err(Failure::new(
-                    "account_key_missing",
-                    "Set up your account key to continue.",
-                )))
+            } else {
+                let missing = || {
+                    Outcome::from(Err(Failure::new(
+                        "account_key_missing",
+                        "Set up your account key to continue.",
+                    )))
+                };
+                (
+                    missing(),
+                    missing(),
+                    missing(),
+                    missing(),
+                    missing(),
+                    missing(),
+                    missing(),
+                    missing(),
+                )
             };
-            (
-                missing(),
-                missing(),
-                missing(),
-                missing(),
-                missing(),
-                missing(),
-                missing(),
-            )
-        };
         Ok(
-            json!({"settings":s,"wallets":wallets,"wallet":wallet,"keys":keys,"ghost_seed_file":seed,"account":account,"account_balance":balance,"deposits":deposits,"activation_terms":terms,"provider_balance":provider,"payouts":payouts,"conversions":conversions,"operations":self.store.operations()?,"refreshed_at":now()}),
+            json!({"settings":s,"wallets":wallets,"wallet":wallet,"keys":keys,"ghost_seed_file":seed,"account":account,"account_balance":balance,"deposits":deposits,"activation_terms":terms,"provider_balance":provider,"payouts":payouts,"conversions":conversions,"ssh_keys":ssh_keys,"operations":self.store.operations()?,"refreshed_at":now()}),
         )
     }
     async fn prepare_send(

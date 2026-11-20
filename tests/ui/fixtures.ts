@@ -9,6 +9,7 @@ export const fixture = {
   wallet: { file:'/tmp/disposable-wallet.dat',addresses:ok({addresses:[address]}),balance:ok({balances:[{amount:'12.345678',amount_atomic:'12345678'}]}),history:ok({history:[{type:'RECEIVE',memo:'<img src=x onerror="window.bad=true">',amount:'0.000001',txid:'a'.repeat(64),height:100,is_pending:false,time_stamp:1700000000000}]}) },
   wallets:ok({wallets:[]}),keys:ok({deposit_memo:'gh-test-memo'}),ghost_seed_file:'/tmp/disposable-account.seed',account:ok({account_alias:'gh-test-account',status:'active',key_epoch:1}),account_balance:ok({available_microusd:'123450000',reserved_microusd:'5000000'}),deposits:ok({items:[]}),activation_terms:ok({deposit_address:address,minimum_deposit_mmx_atomic:'1000000',minimum_confirmations:6,mmx_exchange_rate:{usd_per_mmx:'0.200000000000000000',expires_at:'2099-01-01T00:00:00Z'}}),operations:[],refreshed_at:1700000000,
   provider_balance:ok(null),payouts:ok([]),conversions:ok([]),
+  ssh_keys:ok([{ssh_key_id:'0b7c0a3e-3f0e-4c8e-9a53-5c1f3b1e7a11',label:'Work laptop',public_key:'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOne',key_type:'ssh-ed25519',fingerprint:'SHA256:3n0w0mO8Qe2yQ1Lq9bJ2uV1tY0m4c9o8pHk5aXz7WfE',created_at:'2026-11-02T10:00:00Z'},{ssh_key_id:'5d2f6c18-4c7a-4f25-8d0b-7a1e9c3b2f40',label:'Build server key with a long label that keeps going to sixty-four',public_key:'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQTwo',key_type:'ssh-rsa',fingerprint:'SHA256:Zp8vN2kQ7rT1xYb4LmC9dEoUa3JhGf6WsV0iRnXy5Kc',created_at:'2026-11-10T08:30:00Z'}]),
 };
 export async function openDesktop(page: Page, state = structuredClone(fixture)) {
   // Serve the built UI through Playwright interception when local listening
@@ -29,6 +30,17 @@ export async function openDesktop(page: Page, state = structuredClone(fixture)) 
       (window as any).calls.push(request);
       if(request.action === 'snapshot') return fixture;
       if(request.action === 'save_settings') { fixture.settings=request.settings; return request.settings; }
+      if(request.action === 'add_ssh_key') {
+        const line=String(request.public_key).trim();
+        if(!/^ssh-(ed25519|rsa) /.test(line)) throw {code:'invalid_ssh_key',message:'Paste one public key line from a *.pub file.'};
+        const key={ssh_key_id:'9a1b2c3d-0000-4000-8000-'+String(Date.now()).padStart(12,'0'),label:request.label,public_key:line,key_type:line.split(' ')[0],fingerprint:'SHA256:NewKeyFingerprint0123456789abcdefghijklmnopq',created_at:'2026-11-21T09:00:00Z'};
+        ((fixture as any).ssh_keys.data as any[]).push(key); return key;
+      }
+      if(request.action === 'remove_ssh_key') {
+        const keys=(fixture as any).ssh_keys.data as any[], index=keys.findIndex(k=>k.ssh_key_id === request.ssh_key_id);
+        return keys.splice(index,1)[0];
+      }
+      if(request.action === 'read_public_key_file') return {public_key:'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFromFile'};
       if(request.action === 'prepare_payout' || request.action === 'prepare_payout_address') {
         const balance=(fixture as any).provider_balance.data;
         const [whole,fraction='']=String(request.amount || '').split('.');

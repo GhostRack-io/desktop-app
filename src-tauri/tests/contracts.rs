@@ -1,6 +1,7 @@
 use ghostrack_desktop::controller::{
     approval_id, claim_link, github_link_args, github_signup_args, github_status_args,
-    github_unlink_args, restore_charge, validate_url,
+    github_unlink_args, read_public_key_file, restore_charge, ssh_key_add_args,
+    ssh_key_remove_args, validate_url,
 };
 use ghostrack_desktop::payouts::{amount_mmx_atomic, mmx, request_error, valid_address};
 use ghostrack_desktop::process::Failure;
@@ -200,5 +201,76 @@ fn a_github_link_must_be_on_the_configured_website() {
         "not a url",
     ] {
         assert!(claim_link(link, website).is_err(), "{link}");
+    }
+}
+#[test]
+fn ssh_key_commands_are_built_by_the_app_alone() {
+    let key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample me@host";
+    assert_eq!(
+        ssh_key_add_args(" laptop ", &format!(" {key}\n")).unwrap(),
+        [
+            "account", "ssh-keys", "add", "--label", "laptop", "--key", key
+        ]
+    );
+    // A value that looks like an option stays the value of its flag.
+    assert_eq!(ssh_key_add_args("--yes", key).unwrap()[4], "--yes");
+    assert!(ssh_key_add_args("", key).is_err());
+    assert!(ssh_key_add_args("   ", key).is_err());
+    assert!(ssh_key_add_args(&"a".repeat(100), key).is_ok());
+    assert!(ssh_key_add_args(&"a".repeat(101), key).is_err());
+    for bad in [
+        format!("{key}\n{key}"),
+        "-----BEGIN OPENSSH PRIVATE KEY-----".to_owned(),
+        "ssh-ed25519 -----BEGIN OPENSSH PRIVATE KEY-----".to_owned(),
+        "ssh-dss AAAAB3NzaC1kc3M".to_owned(),
+        "ssh-ed25519".to_owned(),
+        String::new(),
+    ] {
+        let refused = ssh_key_add_args("laptop", &bad).unwrap_err();
+        assert_eq!(refused.code, "invalid_ssh_key", "{bad}");
+        assert!(!refused.message.contains("PRIVATE"));
+    }
+    let id = "0b7c0a3e-3f0e-4c8e-9a53-5c1f3b1e7a11";
+    assert_eq!(
+        ssh_key_remove_args(id).unwrap(),
+        ["account", "ssh-keys", "remove", id]
+    );
+    for bad in ["", "--yes", "not-a-uuid", "0b7c0a3e"] {
+        assert_eq!(
+            ssh_key_remove_args(bad).unwrap_err().code,
+            "invalid_ssh_key"
+        );
+    }
+}
+#[test]
+fn a_public_key_file_is_read_and_anything_else_is_refused_without_content() {
+    let dir = tempfile::tempdir().unwrap();
+    let key = "ecdsa-sha2-nistp256 AAAAE2VjZHNh me@host";
+    let write = |name: &str, content: &[u8]| {
+        let path = dir.path().join(name);
+        std::fs::write(&path, content).unwrap();
+        path
+    };
+    assert_eq!(
+        read_public_key_file(&write("a.pub", format!("{key}\n").as_bytes())).unwrap(),
+        key
+    );
+    let private =
+        b"-----BEGIN OPENSSH PRIVATE KEY-----\nsecretsecret\n-----END OPENSSH PRIVATE KEY-----\n";
+    let mut huge = key.as_bytes().to_vec();
+    huge.extend(std::iter::repeat_n(b' ', 16 * 1024));
+    for file in [
+        write("id", private),
+        write("empty.pub", b""),
+        write("huge.pub", &huge),
+        write("bin.pub", &[0xff, 0xfe, 0x00]),
+        dir.path().join("missing.pub"),
+    ] {
+        let refused = read_public_key_file(&file).unwrap_err();
+        assert_eq!(refused.code, "invalid_ssh_key");
+        assert_eq!(
+            refused.message,
+            "Choose a public key file (*.pub), not a private key."
+        );
     }
 }

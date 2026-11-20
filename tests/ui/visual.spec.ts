@@ -248,3 +248,26 @@ test('all five populated views fit the minimum window and setup keeps the shared
   expect(panels.every(panel=>panel.radius===panels[0].radius && panel.border==='1px')).toBe(true);
   await page.screenshot({animations:'disabled',path:`${shots}/setup-missing-wallet.png`,fullPage:true});
 });
+
+test('review the account page SSH keys at wide and minimum windows in both themes',async({page})=>{
+  await mkdir(shots,{recursive:true});
+  for (const theme of ['light','dark']) {
+    for (const [width,height] of [[1440,900],[760,700]]) {
+      const state=structuredClone(fixture); state.settings.theme=theme;
+      await openDesktop(page,state);
+      await page.setViewportSize({width,height});
+      await page.goto('/#account');
+      const section=page.locator('section',{has:page.getByRole('heading',{name:'SSH keys',exact:true})});
+      await expect(section).toBeVisible();
+      await section.scrollIntoViewIfNeeded();
+      await page.getByLabel('Label',{exact:true}).fill('Laptop');
+      await page.getByLabel('Public key').fill('ssh-dss AAAA');
+      await page.getByRole('button',{name:'Add key'}).click();
+      await page.screenshot({animations:'disabled',path:`${shots}/ssh-keys-${theme}-${width}.png`});
+      const overflow=await page.evaluate(()=>document.documentElement.scrollWidth);
+      expect(overflow,`${theme} at ${width}px`).toBeLessThanOrEqual(width);
+      await section.getByRole('button',{name:'Remove'}).first().click();
+      await page.screenshot({animations:'disabled',path:`${shots}/ssh-key-remove-${theme}-${width}.png`});
+    }
+  }
+});

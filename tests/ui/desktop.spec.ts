@@ -341,3 +341,66 @@ test('a submitted activation payment offers activation checking instead of anoth
   expect(await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'activate_account').length)).toBe(1);
   expect(await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'prepare_send').length)).toBe(0);
 });
+
+test('the account page lists the saved SSH keys with their columns',async({page})=>{
+  await page.getByRole('link',{name:'Account'}).click();
+  await expect(page.getByRole('heading',{name:'SSH keys',exact:true})).toBeVisible();
+  const table=page.locator('.ssh-key-table');
+  await expect(table.getByRole('columnheader')).toHaveText(['Label','Type','Fingerprint','Added','Remove']);
+  await expect(table.getByRole('row')).toHaveCount(3);
+  await expect(table.getByRole('cell',{name:'Work laptop'})).toBeVisible();
+  await expect(table.getByRole('cell',{name:'ssh-rsa',exact:true})).toBeVisible();
+  await expect(table.getByText('SHA256:3n0w0mO8Qe2yQ1Lq9bJ2uV1tY0m4c9o8pHk5aXz7WfE')).toBeVisible();
+});
+test('with no saved key the section says so',async({page})=>{
+  await openDesktop(page,{...structuredClone(fixture),ssh_keys:{data:[],error:null}} as any);
+  await page.getByRole('link',{name:'Account'}).click();
+  await expect(page.getByText('No key saved yet.')).toBeVisible();
+  await expect(page.locator('.ssh-key-table')).toHaveCount(0);
+});
+test('adding a key sends the label and line, clears the form and shows the new row',async({page})=>{
+  await page.getByRole('link',{name:'Account'}).click();
+  await page.getByLabel('Label',{exact:true}).fill('  Home desktop ');
+  await page.getByLabel('Public key').fill('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHome me@home');
+  await page.getByRole('button',{name:'Add key'}).click();
+  await expect(page.getByText('SSH key added.')).toBeVisible();
+  const calls=await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'add_ssh_key'));
+  expect(calls).toEqual([{action:'add_ssh_key',label:'Home desktop',public_key:'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHome me@home'}]);
+  await expect(page.getByLabel('Label',{exact:true})).toHaveValue('');
+  await expect(page.getByLabel('Public key')).toHaveValue('');
+  await expect(page.locator('.ssh-key-table').getByRole('cell',{name:'Home desktop'})).toBeVisible();
+});
+test('a refused add keeps the fields and shows the error',async({page})=>{
+  await page.getByRole('link',{name:'Account'}).click();
+  await page.getByLabel('Label',{exact:true}).fill('Odd');
+  await page.getByLabel('Public key').fill('ssh-dss AAAA');
+  await page.getByRole('button',{name:'Add key'}).click();
+  await expect(page.getByText('Paste one public key line from a *.pub file.',{exact:true}).last()).toBeVisible();
+  await expect(page.locator('#toast')).toHaveText('Paste one public key line from a *.pub file.');
+  await expect(page.getByLabel('Label',{exact:true})).toHaveValue('Odd');
+  await expect(page.getByLabel('Public key')).toHaveValue('ssh-dss AAAA');
+  await expect(page.locator('.ssh-key-table tbody tr')).toHaveCount(2);
+});
+test('removing a key asks first, naming its label and fingerprint',async({page})=>{
+  await page.getByRole('link',{name:'Account'}).click();
+  await page.locator('.ssh-key-table').getByRole('row',{name:/Work laptop/}).getByRole('button',{name:'Remove'}).click();
+  const dialog=page.getByRole('dialog');
+  await expect(dialog.getByRole('heading',{name:'Remove this SSH key?'})).toBeVisible();
+  await expect(dialog.getByText('Work laptop')).toBeVisible();
+  await expect(dialog.getByText('SHA256:3n0w0mO8Qe2yQ1Lq9bJ2uV1tY0m4c9o8pHk5aXz7WfE')).toBeVisible();
+  await expect(dialog.getByText('New instances no longer get it. Instances that already have it keep it.')).toBeVisible();
+  expect(await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'remove_ssh_key').length)).toBe(0);
+  await dialog.getByRole('button',{name:'Remove key'}).click();
+  await expect(page.getByText('SSH key removed.')).toBeVisible();
+  expect(await page.evaluate(()=>(window as any).calls.filter((r:any)=>r.action === 'remove_ssh_key'))).toEqual([{action:'remove_ssh_key',ssh_key_id:'0b7c0a3e-3f0e-4c8e-9a53-5c1f3b1e7a11'}]);
+  await expect(page.locator('.ssh-key-table tbody tr')).toHaveCount(1);
+});
+test('the section is absent until the account is activated',async({page})=>{
+  const state=structuredClone(fixture) as any;
+  state.account={data:null,error:{code:'account_not_activated',message:'Not activated'}};
+  await openDesktop(page,state);
+  await page.getByRole('link',{name:'Account'}).click();
+  await expect(page.getByRole('heading',{name:'Website password'})).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'SSH keys',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'Authorize an action'})).toBeVisible();
+});

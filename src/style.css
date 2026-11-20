@@ -150,6 +150,11 @@ details.section:not([open])>summary { border-block-end:0; }
 .desktop-table th:last-child,.desktop-table td:last-child { text-align:right; }
 .desktop-table .memo { display:block; font-size:var(--text-xs); color:var(--color-text-muted); margin-top:var(--space-1); }
 .history-table th,.history-table td:not(:first-child) { white-space:nowrap; }
+.ssh-key-table td { vertical-align:middle; }
+.ssh-key-table td:is(:nth-child(2),:nth-child(4)) { white-space:nowrap; }
+.field-local--short { max-width:16rem; }
+@media (min-width:80rem) { .ssh-key-table .code { white-space:nowrap; } }
+.field-local textarea.code { font-family:var(--font-mono); font-size:var(--text-xs); }
 .payout-table .memo.code { max-width:27ch; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .payout-table th,.payout-table td:nth-child(2),.payout-table td:last-child { white-space:nowrap; }
 .payout-table .btn { display:flex; width:fit-content; margin-top:var(--space-2); }
