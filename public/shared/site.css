@@ -868,6 +868,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
 .limit-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4)}
 .limit-row>.unit-box{flex:0 1 auto;inline-size:10rem}
+.limit-row>input{flex:0 1 20rem;inline-size:20rem}
 .limit-row__buttons{display:flex;gap:var(--space-2)}
 .vpn-form{max-inline-size:none}
 .vpn-form .field>input{max-inline-size:40rem}
@@ -2056,6 +2057,11 @@ form[data-action="offering.rent"]{display:flex}
 
 .backup-live{display:contents}
 .backup-list tbody th{min-inline-size:9em;white-space:normal}
+
+.snapshot-list tr[data-mark] :is(th,td){color:var(--color-text-muted)}
+
+.snapshot-list tbody th{white-space:normal;overflow-wrap:anywhere}
+.snapshot-list+p{margin-block-start:var(--space-3)}
 .backup-stack,.backup-destination{display:grid;align-content:start;justify-items:start;gap:var(--space-3)}
 .backup-destination{padding:var(--space-4);border:var(--border) solid var(--color-border);border-radius:var(--radius);background:var(--color-surface)}
 .backup-destination h3{font-size:var(--text-lg)}
