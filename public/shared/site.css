@@ -625,6 +625,7 @@ main:focus{outline:none}
 .panel--danger .panel__title,.section--danger .section__title{color:var(--color-danger-text)}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr));gap:var(--space-5)}
 .cols--fill{grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr))}
+.cols>.act{display:grid}
 
 @media (min-width:48em){.cols--lead{grid-template-columns:auto minmax(0,1fr);column-gap:var(--space-7)}}
 .lan-meshes>li{display:grid;align-content:start;gap:var(--space-4)}
@@ -868,6 +869,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
 .limit-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4)}
 .limit-row>.unit-box{flex:0 1 auto;inline-size:10rem}
+.payout-form .unit-box{max-inline-size:16rem}
 .limit-row>input{flex:0 1 20rem;inline-size:20rem}
 .limit-row__buttons{display:flex;gap:var(--space-2)}
 .vpn-form{max-inline-size:none}
@@ -892,6 +894,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .check{display:flex;align-items:flex-start;gap:var(--space-2);overflow-wrap:anywhere}
 
 .check input{inline-size:1.125rem;block-size:1.125rem;min-block-size:0;margin:.1875rem 0 0;padding:0;border:0;background:none;accent-color:var(--color-accent)}
+.field>.check input{margin-block-start:max(0rem,calc((var(--text-label) * var(--leading) - 1.125rem) / 2))}
 .check__text{display:grid;gap:var(--space-1)}
 .choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12rem),1fr));gap:var(--space-2)}
 
@@ -1044,6 +1047,9 @@ main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,di
 .job__title{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);font-size:var(--text-lg);font-weight:var(--weight-bold)}
 .job__detail{color:var(--color-text-muted);font-size:var(--text-sm);font-variant-numeric:tabular-nums}
 .job>.action{justify-self:start}
+.job--cancel{grid-template-columns:minmax(0,1fr) auto;column-gap:var(--space-5)}
+.job--cancel>:not(.job__cancel){grid-column:1}
+.job__cancel{grid-column:2;grid-row:1/span 3;align-self:center}
 
 .facts{display:grid}
 .facts>div{display:grid;gap:var(--space-1) var(--space-4);padding-block:.6875rem}
@@ -1977,6 +1983,7 @@ form:is([data-action="offering.rent"],[data-action="instance.move"]){display:fle
 @media (min-width:40em){.reveal__secret{grid-template-columns:minmax(0,1fr) auto;align-items:center}}
 .flow-footnote{padding-block-start:var(--space-4);border-block-start:var(--border) solid var(--color-divider)}
 
+.flow[data-sign=enable-totp]{max-inline-size:44rem}
 .totp-enroll{display:grid;gap:var(--space-4) var(--space-5);align-items:start;min-inline-size:0}
 @media (min-width:40em){.totp-enroll{grid-template-columns:auto minmax(0,1fr)}}
 .totp-enroll__fields{display:grid;gap:var(--space-4);min-inline-size:0}
@@ -1987,6 +1994,7 @@ form:is([data-action="offering.rent"],[data-action="instance.move"]){display:fle
 .banner-code{display:grid;gap:var(--space-3);max-inline-size:24rem}
 .qr{display:block;inline-size:11rem;max-inline-size:100%;block-size:auto;color:var(--color-term);background:var(--color-term-text);border-radius:var(--radius)}
 [data-vpn-qr] .qr{inline-size:18rem}
+.totp-enroll .qr{inline-size:16rem}
 [data-vpn-config]:not([hidden]){display:grid;gap:var(--space-3)}
 [data-vpn-config] .code-block{align-items:flex-start}
 .vpn-config__text{display:grid;gap:var(--space-3);align-content:start;min-inline-size:0}
