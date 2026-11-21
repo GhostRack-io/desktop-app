@@ -1792,9 +1792,9 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 .choices .choice__input:checked{border-color:var(--color-accent);background:var(--color-solid);box-shadow:inset 0 0 0 .1875rem var(--color-solid),inset 0 0 0 1rem var(--color-accent)}
 .choices .choice__input:disabled{border-style:dashed;cursor:not-allowed}
 .choices .choice__input:not(:disabled):hover{border-color:var(--color-text)}
-:is([data-action="offering.rent"],[data-action="provider.review"])>.form{flex:1 1 100%}
+:is([data-action="offering.rent"],[data-action="instance.move"],[data-action="provider.review"])>.form{flex:1 1 100%}
 
-form[data-action="offering.rent"]{display:flex}
+form:is([data-action="offering.rent"],[data-action="instance.move"]){display:flex}
 #rent-gateway{grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))}
 
 .offering-costs{display:grid;gap:var(--space-1);padding:var(--space-3) var(--space-4);background:var(--color-glass-well);box-shadow:inset 0 0 0 var(--border) var(--color-divider),var(--glass-inset);border-radius:var(--radius)}
