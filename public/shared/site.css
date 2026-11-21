@@ -1816,7 +1816,8 @@ form:is([data-action="offering.rent"],[data-action="instance.move"]){display:fle
 .offering-side{gap:var(--space-5)}
 .offering-hosts{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4)}
 
-@media (min-width:30em){.network-line{display:grid;grid-template-columns:7.5rem 5.5rem minmax(0,1fr);align-items:baseline;column-gap:var(--space-2)}}
+
+@media (min-width:30em){.network-line{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--space-2)}.network-line>:first-child{flex:0 0 7.5rem}.network-line>.network-line__relation{flex:0 0 5.5rem}}
 .network-line__relation{color:var(--color-text-secondary)}
 
 .offering-inventory{margin-inline:calc(var(--inset,0rem) * -1);padding:var(--space-3) var(--inset,0rem) 0;border-block-start:var(--border) solid var(--color-divider)}
