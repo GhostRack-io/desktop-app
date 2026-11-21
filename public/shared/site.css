@@ -1408,9 +1408,10 @@ dialog[open]{position:fixed}
 .dialog__actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-2);margin-inline:calc(var(--space-5) * -1);padding:var(--space-3) var(--space-5);border-block-start:var(--border) solid var(--color-divider);background:var(--color-bg)}
 
 
-.gateway-traffic{grid-template-columns:repeat(auto-fit,minmax(min(100%,40rem),1fr))}
-
-@media (min-width:40em){.gateway-traffic .data-table{table-layout:fixed}.gateway-traffic .data-table thead tr:first-child>th[rowspan]{inline-size:36%}.gateway-traffic .data-table thead tr:first-child>.data-table__group{inline-size:32%}}
+.gateway-traffic{grid-template-columns:repeat(auto-fit,minmax(min(100%,38rem),1fr))}
+@media (min-width:40em){.gateway-traffic .data-table{table-layout:fixed}.gateway-traffic .data-table thead th:first-child{inline-size:32%}.gateway-traffic .data-table td{white-space:nowrap}.traffic-packets{display:inline-block;min-inline-size:7.5rem;text-align:end}}
+.traffic-packets{margin-inline-start:var(--space-2);color:var(--color-text-muted);font-size:var(--text-sm);font-variant-numeric:tabular-nums}
+@media not all and (min-width:40em){.gateway-traffic .data-table td{flex-basis:100%}}
 .instance-frame{display:contents}
 
 .instance-frame__notices{display:grid;gap:var(--space-2)}
