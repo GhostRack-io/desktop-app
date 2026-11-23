@@ -1,12 +1,12 @@
-// The website's backdrop (site.css's body::before glows and body::after hero art, already
-// blurred in its bitmap, with a masked top edge) drawn once
-// into a bitmap that scrolls with the page. WebKitGTK without GPU compositing (NVIDIA on X11)
-// otherwise repaints them in every scrolled frame: six large gradients and a blurred SVG,
-// about half of each frame. The pseudo-elements stay the source: their computed style is
-// read and painted the same way, and anything that cannot be read or drawn leaves them be.
-// Everything in it is soft, so a quarter of the resolution looks the same and stays small.
+// The website's backdrop (site.css's body::before glows and body::after hero art, both drawn
+// from bitmaps already soft, the art with a masked top edge) drawn once into a bitmap that
+// scrolls with the page. WebKitGTK without GPU compositing (NVIDIA on X11) otherwise repaints
+// them in every scrolled frame: six large images and the art, about half of each frame. The
+// pseudo-elements stay the source: their computed style is read and painted the same way, and
+// anything that cannot be read or drawn leaves them be. Everything in it is soft, so a quarter
+// of the resolution looks the same and stays small.
 
-type Glow = { rx:number; ry:number; x:number; y:number; color:string; stop:number };
+type Layer = { url:string; x:string; width:number; height:number };
 
 const root = document.documentElement;
 const SCALE = 0.25;
@@ -17,25 +17,42 @@ let drawn = { key:'', height:0 };
 let pending = 0;
 let generation = 0;
 
-// "416px", "7%" or "calc(7% + 48.16px)", the form site.css's glows under the rails take.
-function length(value:string, of:number) {
-  const sum = value.match(/^calc\(([\d.]+)% ([+-]) ([\d.]+)px\)$/);
-  if (sum) return +sum[1] / 100 * of + (sum[2] === '-' ? -1 : 1) * +sum[3];
-  return value.endsWith('%') ? parseFloat(value) / 100 * of : parseFloat(value);
+// A computed list ("a, calc(1% + max(0px, 2px)), b") split at its top-level commas.
+function items(list:string) {
+  const out:string[] = []; let depth = 0, start = 0;
+  for (let i = 0; i < list.length; i++) {
+    const c = list[i];
+    if (c === '(') depth++; else if (c === ')') depth--;
+    else if (c === ',' && depth === 0) { out.push(list.slice(start, i).trim()); start = i + 1; }
+  }
+  out.push(list.slice(start).trim());
+  return out;
 }
 
-// "radial-gradient(928px 576px at calc(7% + 48.16px) 416px, rgba(…), rgba(0, 0, 0, 0) 70%)",
-// one per glow.
-function glows(image:string, width:number): Glow[] | null {
-  const found:Glow[] = [];
-  const pattern = /radial-gradient\(([\d.]+)px ([\d.]+)px at ([\d.]+(?:px|%)|calc\([\d.]+% [+-] [\d.]+px\)) ([\d.]+(?:px|%)), (rgba?\([^)]*\))(?: 0%)?, rgba\(0, 0, 0, 0\) ([\d.]+)%\)/g;
-  for (const m of image.matchAll(pattern)) found.push({ rx:+m[1], ry:+m[2], x:length(m[3],width), y:parseFloat(m[4]), color:m[5], stop:+m[6]/100 });
-  return found.length && found.length === (image.match(/radial-gradient/g) ?? []).length ? found : null;
+// The glows: one url() each, tiled down the page at its size, placed across by a
+// background-position-x such as "calc(7% - 605.44px + 0.86 * max(0px, 50% - 16px))".
+function layers(before:CSSStyleDeclaration): Layer[] | null {
+  const urls = items(before.backgroundImage).map(u => u.match(/^url\("?(.*?)"?\)$/)?.[1]);
+  const xs = items(before.backgroundPositionX), sizes = items(before.backgroundSize);
+  if (!urls.length || urls.some(u => !u) || xs.length !== urls.length || sizes.length !== urls.length) return null;
+  const found = urls.map((url, i) => { const [w, h] = sizes[i].split(' ').map(parseFloat); return { url:url!, x:xs[i], width:w, height:h }; });
+  return found.every(l => l.width > 0 && l.height > 0) ? found : null;
 }
 
-// The glow's own colour at no alpha: canvas gradients blend unpremultiplied, so fading to
-// transparent black would darken the edge that CSS fades cleanly.
-function clear(color:string) { return color.replace(/^rgba?\(([^,]+),([^,]+),([^,)]+).*$/, 'rgba($1,$2,$3,0)'); }
+// A background position's percentages take the image's size off the box: the engine resolves
+// the expression as an element's left in a box of that width. A box narrower than the image
+// has a negative one, where the expressions site.css uses are linear (no art-side percentage).
+function across(x:string, room:number) {
+  const box = document.createElement('div'), probe = document.createElement('div');
+  box.style.cssText = 'position:absolute;visibility:hidden;top:0;left:0;height:0';
+  probe.style.cssText = 'position:absolute';
+  probe.style.left = x;
+  box.append(probe); document.body.append(box);
+  const at = (width:number) => { box.style.width = `${width}px`; return parseFloat(getComputedStyle(probe).left); };
+  const value = room >= 0 ? at(room) : at(0) + (at(1) - at(0)) * room;
+  box.remove();
+  return value;
+}
 
 // Three box blurs approximate a Gaussian of this standard deviation (premultiplied pixels).
 function boxes(sigma:number) {
@@ -80,7 +97,7 @@ function read() {
   if (shown) root.removeAttribute('data-backdrop');
   const before = getComputedStyle(document.body, '::before'), after = getComputedStyle(document.body, '::after');
   const style = {
-    width:parseFloat(before.width), height:parseFloat(before.height), glows:before.backgroundImage, tile:parseFloat(before.backgroundSize.split(' ')[1] ?? ''),
+    width:parseFloat(before.width), height:parseFloat(before.height), glows:layers(before),
     glowAlpha:+before.opacity, art:after.display === 'none' ? '' : after.backgroundImage, left:parseFloat(after.left), top:parseFloat(after.top),
     artWidth:parseFloat(after.width), artAlpha:+after.opacity, filter:after.filter,
     artOffset:parseFloat(after.backgroundPositionY.match(/-?[\d.]+px/)?.[0] ?? '0'), fade:after.maskImage,
@@ -91,32 +108,30 @@ function read() {
 
 async function draw() {
   const style = read();
-  const key = [style.width, style.glows, style.tile, style.glowAlpha, style.art, style.left, style.top, style.artWidth, style.artAlpha, style.filter, style.artOffset, style.fade].join('|');
+  const key = [style.width, JSON.stringify(style.glows), style.glowAlpha, style.art, style.left, style.top, style.artWidth, style.artAlpha, style.filter, style.artOffset, style.fade].join('|');
   if (key === drawn.key && style.height <= drawn.height) return;
   const mine = ++generation;
   const fail = () => { if (mine === generation) { root.removeAttribute('data-backdrop'); drawn = { key:'', height:0 }; } };
   const width = style.width, height = Math.ceil((style.height + HEADROOM) / 400) * 400;
-  const list = glows(style.glows, width);
+  const list = style.glows;
   const art = style.art ? style.art.match(/^url\("?(.*?)"?\)$/)?.[1] : null;
   const filter = style.filter.match(/^blur\(([\d.]+)px\)(?: saturate\(([\d.]+)\))?$/);
   // site.css fades the art's top edge in with a mask: transparent to opaque over a length.
   const fade = style.fade.match(/^linear-gradient\(rgba\(0, 0, 0, 0\), rgb[a]?\([^)]*\) ([\d.]+)px\)$/);
-  if (!list || !(style.tile > 0) || !(width > 0) || (style.art && !art) || (style.filter !== 'none' && !filter) || (style.fade !== 'none' && !fade)) return fail();
+  if (!list || !(width > 0) || (style.art && !art) || (style.filter !== 'none' && !filter) || (style.fade !== 'none' && !fade)) return fail();
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(width * SCALE); canvas.height = Math.ceil(height * SCALE);
   const context = canvas.getContext('2d', { willReadFrequently:true });
   if (!context) return fail();
   context.scale(SCALE, SCALE);
+  const images = list.map(layer => { const image = new Image(); image.src = layer.url; return image; });
+  try { await Promise.all(images.map(image => image.decode())); } catch { return fail(); }
+  if (mine !== generation) return;
   context.globalAlpha = style.glowAlpha;
-  for (let y = 0; y < height; y += style.tile) for (const glow of list) {
-    context.save();
-    context.translate(glow.x, y + glow.y);
-    context.scale(1, glow.ry / glow.rx);
-    const gradient = context.createRadialGradient(0, 0, 0, 0, 0, glow.rx);
-    gradient.addColorStop(0, glow.color); gradient.addColorStop(glow.stop, clear(glow.color)); gradient.addColorStop(1, clear(glow.color));
-    context.fillStyle = gradient;
-    context.fillRect(-glow.rx, -glow.rx, glow.rx * 2, glow.rx * 2);
-    context.restore();
+  for (const [i, layer] of list.entries()) {
+    const x = across(layer.x, width - layer.width);
+    if (Number.isNaN(x)) return fail();
+    for (let y = 0; y < height; y += layer.height) context.drawImage(images[i], x, y, layer.width, layer.height);
   }
   if (art) {
     const image = new Image(); image.src = art;
