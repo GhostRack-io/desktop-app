@@ -1069,6 +1069,8 @@ main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,di
 
 @media (min-width:40em){.facts:not(.facts--inline)>div{grid-template-columns:minmax(6rem,9.5rem) minmax(min-content,1fr);align-items:baseline}}
 
+@media (min-width:40em){.facts.payout-figures>div{grid-template-columns:6rem minmax(min-content,1fr)}}
+
 .projection dd{display:flex;flex-wrap:wrap;gap:0 var(--space-4)}
 .projection__part{color:var(--color-text-muted)}
 @media (min-width:40em){.projection dd{display:grid;grid-template-columns:repeat(3,minmax(0,9rem))}}
