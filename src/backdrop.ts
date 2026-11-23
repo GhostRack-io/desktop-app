@@ -1,4 +1,5 @@
-// The website's backdrop (site.css's body::before glows and body::after hero art) drawn once
+// The website's backdrop (site.css's body::before glows and body::after hero art, already
+// blurred in its bitmap, with a masked top edge) drawn once
 // into a bitmap that scrolls with the page. WebKitGTK without GPU compositing (NVIDIA on X11)
 // otherwise repaints them in every scrolled frame: six large gradients and a blurred SVG,
 // about half of each frame. The pseudo-elements stay the source: their computed style is
@@ -82,6 +83,7 @@ function read() {
     width:parseFloat(before.width), height:parseFloat(before.height), glows:before.backgroundImage, tile:parseFloat(before.backgroundSize.split(' ')[1] ?? ''),
     glowAlpha:+before.opacity, art:after.display === 'none' ? '' : after.backgroundImage, left:parseFloat(after.left), top:parseFloat(after.top),
     artWidth:parseFloat(after.width), artAlpha:+after.opacity, filter:after.filter,
+    artOffset:parseFloat(after.backgroundPositionY.match(/-?[\d.]+px/)?.[0] ?? '0'), fade:after.maskImage,
   };
   if (shown) root.setAttribute('data-backdrop', '');
   return style;
@@ -89,7 +91,7 @@ function read() {
 
 async function draw() {
   const style = read();
-  const key = [style.width, style.glows, style.tile, style.glowAlpha, style.art, style.left, style.top, style.artWidth, style.artAlpha, style.filter].join('|');
+  const key = [style.width, style.glows, style.tile, style.glowAlpha, style.art, style.left, style.top, style.artWidth, style.artAlpha, style.filter, style.artOffset, style.fade].join('|');
   if (key === drawn.key && style.height <= drawn.height) return;
   const mine = ++generation;
   const fail = () => { if (mine === generation) { root.removeAttribute('data-backdrop'); drawn = { key:'', height:0 }; } };
@@ -97,7 +99,9 @@ async function draw() {
   const list = glows(style.glows, width);
   const art = style.art ? style.art.match(/^url\("?(.*?)"?\)$/)?.[1] : null;
   const filter = style.filter.match(/^blur\(([\d.]+)px\)(?: saturate\(([\d.]+)\))?$/);
-  if (!list || !(style.tile > 0) || !(width > 0) || (style.art && !art) || (style.filter !== 'none' && !filter)) return fail();
+  // site.css fades the art's top edge in with a mask: transparent to opaque over a length.
+  const fade = style.fade.match(/^linear-gradient\(rgba\(0, 0, 0, 0\), rgb[a]?\([^)]*\) ([\d.]+)px\)$/);
+  if (!list || !(style.tile > 0) || !(width > 0) || (style.art && !art) || (style.filter !== 'none' && !filter) || (style.fade !== 'none' && !fade)) return fail();
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(width * SCALE); canvas.height = Math.ceil(height * SCALE);
   const context = canvas.getContext('2d', { willReadFrequently:true });
@@ -119,14 +123,21 @@ async function draw() {
     try { await image.decode(); } catch { return fail(); }
     if (mine !== generation) return;
     const step = style.artWidth * image.naturalHeight / image.naturalWidth;
-    if (!(style.artWidth > 0 && step > 0) || Number.isNaN(style.left + style.top)) return fail();
+    if (!(style.artWidth > 0 && step > 0) || Number.isNaN(style.left + style.top + style.artOffset)) return fail();
     // The box clips the tiles and the blur then reaches past it, as the element's filter does.
     const layer = document.createElement('canvas');
     layer.width = canvas.width; layer.height = canvas.height;
     const tiles = layer.getContext('2d', { willReadFrequently:true })!;
     tiles.scale(SCALE, SCALE);
     tiles.beginPath(); tiles.rect(style.left, style.top, style.artWidth, height - style.top); tiles.clip();
-    for (let y = style.top; y < height; y += step) tiles.drawImage(image, style.left, y, style.artWidth, step);
+    for (let y = style.top + style.artOffset % step - (style.artOffset > 0 ? step : 0); y < height; y += step) tiles.drawImage(image, style.left, y, style.artWidth, step);
+    if (fade) {
+      const mask = tiles.createLinearGradient(0, style.top, 0, style.top + +fade[1]);
+      mask.addColorStop(0, 'rgba(0,0,0,0)'); mask.addColorStop(1, 'rgba(0,0,0,1)');
+      tiles.globalCompositeOperation = 'destination-in'; tiles.fillStyle = mask;
+      tiles.fillRect(style.left, style.top, style.artWidth, height - style.top);
+      tiles.globalCompositeOperation = 'source-over';
+    }
     const sigma = filter ? +filter[1] * SCALE : 0, saturation = filter?.[2] ? +filter[2] : 1;
     if (sigma > 0 || saturation !== 1) tiles.putImageData(soften(tiles.getImageData(0, 0, layer.width, layer.height), sigma, saturation), 0, 0);
     context.setTransform(1, 0, 0, 1, 0, 0);
