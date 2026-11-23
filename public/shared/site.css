@@ -1076,9 +1076,12 @@ main .notice:not(:is(.section,.panel,.login-card,.notification,.message,.flow,di
 .tile__unit{color:var(--color-text-muted);font-size:.875rem;letter-spacing:0}
 .tiles--compact .tile__value{font-size:var(--text-xl)}
 
-.tile--action{grid-template-columns:auto 1fr;column-gap:var(--space-5)}
+.tile--action{grid-template-columns:auto 1fr;column-gap:var(--space-2)}
 .tile--action>:not(.tile__action){grid-column:1}
 .tile--action>.tile__action{grid-column:2;grid-row:2;align-self:center;justify-self:start;margin-block:-.375rem}
+
+.tile__add{inline-size:2.25rem;min-block-size:2.25rem;color:var(--color-text)}
+.tile__add .icon{inline-size:1.375rem;block-size:1.375rem}
 @media not all and (min-width:40em){
 .tiles--compact{display:block}
 .tiles--compact .tile{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--space-3);padding-block:var(--space-2)}
