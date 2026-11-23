@@ -1479,7 +1479,7 @@ html{--sticky-top:calc(var(--bar-height) + var(--border))}
 .account{display:flex;align-items:center;gap:var(--space-3)}
 .account>.btn--primary{min-block-size:var(--control-height)}
 
-.account-balance{display:inline-flex;align-items:center;min-block-size:var(--control-height);padding:.125rem .6875rem 0 .75rem;border:var(--border) solid var(--color-glass-control-edge);background:var(--glass-card);color:var(--color-text);font-size:.875rem;font-weight:var(--weight-medium);text-decoration:none;white-space:nowrap;box-shadow:var(--glass-control-lift);border-radius:var(--radius)}
+.account-balance{display:inline-flex;align-items:center;min-block-size:var(--control-height);padding:0 .6875rem .0625rem .75rem;line-height:1;border:var(--border) solid var(--color-glass-control-edge);background:var(--glass-card);color:var(--color-text);font-size:.875rem;font-weight:var(--weight-medium);text-decoration:none;white-space:nowrap;box-shadow:var(--glass-control-lift);border-radius:var(--radius)}
 .account-balance:hover{border-color:var(--color-border-strong)}
 .account-balance .figure-number{font-weight:inherit}
 .account .menu__toggle{min-block-size:var(--control-height);padding:0 .625rem 0 .75rem}
