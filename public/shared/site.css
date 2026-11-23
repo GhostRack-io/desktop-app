@@ -1885,8 +1885,14 @@ form:is([data-action="offering.rent"],[data-action="instance.move"]){display:fle
 @media (min-width:72em){.feature-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.feature-grid>li:last-child:nth-child(2n+1){grid-column:auto}.feature-grid>li:last-child:nth-child(3n+1){grid-column:1 / -1}}
 
 @media (min-width:72em){.feature-grid--pairs{grid-template-columns:repeat(2,minmax(0,1fr))}.feature-grid--pairs>li:last-child:nth-child(3n+1){grid-column:auto}}
-.feature-grid>li{display:grid;grid-template-columns:auto minmax(0,1fr);align-content:start;gap:var(--space-1) var(--space-3)}
-.feature-grid>li>.icon{grid-row:1 / span 2;box-sizing:content-box;inline-size:1.125rem;block-size:1.125rem;padding:.4375rem;border:var(--border) solid var(--color-glass-hairline);border-radius:var(--radius-sm);background:var(--color-surface-sunken);color:var(--color-text)}
+.feature-grid>li{--plate:var(--color-glass-glow-1);display:grid;grid-template-columns:auto minmax(0,1fr);align-content:start;gap:var(--space-1) var(--space-3)}
+
+.feature-grid>li:nth-child(6n+2){--plate:var(--color-glass-glow-3)}
+.feature-grid>li:nth-child(6n+3){--plate:var(--color-glass-glow-5)}
+.feature-grid>li:nth-child(6n+4){--plate:var(--color-glass-glow-4)}
+.feature-grid>li:nth-child(6n+5){--plate:var(--color-glass-glow-6)}
+.feature-grid>li:nth-child(6n){--plate:var(--color-glass-glow-2)}
+.feature-grid>li>.icon{grid-row:1 / span 2;box-sizing:content-box;inline-size:1.25rem;block-size:1.25rem;padding:.5625rem;border:var(--border) solid var(--color-transparent);border-radius:var(--radius);background:radial-gradient(130% 80% at 30% 0,var(--color-glass-sheen),var(--color-transparent) 70%) padding-box,linear-gradient(150deg,var(--plate),var(--plate) 35%,var(--color-transparent)) padding-box,linear-gradient(150deg,var(--plate),var(--color-transparent) 90%) padding-box,var(--glass-card) padding-box,var(--glass-rim) border-box;box-shadow:var(--glass-card-lift),var(--glass-inner-band);color:var(--color-text)}
 .feature-grid h3{font-size:var(--text-md);line-height:1.3}
 .feature-grid p{font-size:var(--text-sm);line-height:1.5}
 
