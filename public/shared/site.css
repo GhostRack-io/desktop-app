@@ -104,6 +104,7 @@
 --color-progress:#e84a00;
 --color-graph-1:#e84a00;
 --color-graph-2:#2563d9;
+--color-graph-3:#0f7a5a;
 --color-shadow:#1b19161f;
 --color-backdrop:#1b1916b3;
 --color-magnitude-1:#3b4250;
@@ -311,6 +312,7 @@
 --color-progress:#ff8a4c;
 --color-graph-1:#f96416;
 --color-graph-2:#73a2ff;
+--color-graph-3:#3ecf9c;
 --color-shadow:#00000066;
 --color-backdrop:#000000bf;
 --color-magnitude-1:#ccd3e0;
@@ -464,6 +466,7 @@
 --color-progress:#ff8a4c;
 --color-graph-1:#f96416;
 --color-graph-2:#73a2ff;
+--color-graph-3:#3ecf9c;
 --color-shadow:#00000066;
 --color-backdrop:#000000bf;
 --color-magnitude-1:#ccd3e0;
@@ -1373,7 +1376,7 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 
 .graphs{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-5)}
 @media (min-width:48em){.graphs{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.graph{--line-0:var(--color-graph-1);--line-1:var(--color-graph-2);position:relative;min-inline-size:0;padding:.875rem 1rem .625rem;border:var(--border) solid var(--color-glass-hairline);background:var(--glass-card);border-radius:var(--radius);box-shadow:var(--glass-card-lift),var(--glass-inner-band)}
+.graph{--line-0:var(--color-graph-1);--line-1:var(--color-graph-2);--line-2:var(--color-graph-3);position:relative;min-inline-size:0;padding:.875rem 1rem .625rem;border:var(--border) solid var(--color-glass-hairline);background:var(--glass-card);border-radius:var(--radius);box-shadow:var(--glass-card-lift),var(--glass-inner-band)}
 
 .graph::after{content:"";position:absolute;inset:calc(var(--border) * -1);padding:var(--border-thick);background:var(--glass-rim);border-radius:inherit;-webkit-mask:linear-gradient(var(--color-text) 0 0) content-box,linear-gradient(var(--color-text) 0 0);-webkit-mask-composite:xor;mask:linear-gradient(var(--color-text) 0 0) content-box,linear-gradient(var(--color-text) 0 0);mask-composite:exclude;pointer-events:none}
 @media(forced-colors:active){.graph{border-color:var(--sys-canvas-text)}.graph::after{display:none}}
@@ -1385,6 +1388,7 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .graph__legend dt{color:var(--color-text-muted);font-size:var(--text-sm)}
 .graph__swatch{display:inline-block;inline-size:.625rem;block-size:.1875rem;margin-inline-end:.3125rem;vertical-align:.1875em;background:var(--line-0);border-radius:var(--radius-sm)}
 .graph__swatch--1{background:var(--line-1)}
+.graph__swatch--2{background:var(--line-2)}
 .graph--traffic-out{--line-0:var(--color-graph-2)}
 .graph__refresh{position:absolute;inset-block-start:.625rem;inset-inline-end:.625rem;display:grid;place-items:center;inline-size:1.75rem;block-size:1.75rem;color:var(--color-text-muted);border-radius:var(--radius)}
 .graph__refresh:hover{background:var(--color-surface-sunken);color:var(--color-text)}
@@ -1397,10 +1401,13 @@ ul.tag-list{margin:0;padding:0;list-style:none}
 .graph__area{stroke:none}
 .graph__line{fill:none;stroke:var(--line-0);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .graph__line--1{stroke:var(--line-1)}
+.graph__line--2{stroke:var(--line-2)}
 .graph__dot{fill:var(--line-0)}
 .graph__dot--1{fill:var(--line-1)}
+.graph__dot--2{fill:var(--line-2)}
 .graph__stop{stop-color:var(--line-0);stop-opacity:.22}
 .graph__stop--1{stop-color:var(--line-1);stop-opacity:.14}
+.graph__stop--2{stop-color:var(--line-2);stop-opacity:.14}
 .graph__stop--end{stop-opacity:0}
 .graph__cross{visibility:hidden;stroke:var(--color-text-muted);stroke-width:1;stroke-dasharray:3 3}
 .graph__cross.is-on{visibility:visible}
