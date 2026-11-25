@@ -620,6 +620,8 @@ main:focus{outline:none}
 :is(.section,.panel) .panel::before,:is(.section,.panel) .panel::after{content:none}
 :is(.section,.panel) .panel>:first-child{background:none}
 .section__header,.panel__header{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4)}
+.app-cards .panel__header{flex-wrap:nowrap}
+.app-cards .panel__title{min-inline-size:0;overflow-wrap:anywhere}
 .section__header>:first-child,.panel__header>:first-child{margin-inline-end:auto}
 :is(.section:not(.about-section),.panel) :is(.section__title,.panel__title){font-size:var(--text-title);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight)}
 .block__meta,.note{color:var(--color-text-muted);font-size:var(--text-sm)}
